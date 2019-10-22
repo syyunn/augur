@@ -4,6 +4,8 @@ import { SDKConfiguration, startServer } from "./create-api";
 import { EndpointSettings } from "./getter/types";
 import * as HTTPEndpoint from "./HTTPEndpoint";
 import * as WebsocketEndpoint from "./WebsocketEndpoint";
+import { configureDexieForNode } from "@augurproject/sdk/build/state/utils/DexieIDBShim";
+configureDexieForNode(false);
 
 export async function run() {
   const settings = require("@augurproject/sdk/src/state/settings.json");
