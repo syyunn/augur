@@ -7,7 +7,7 @@ import {
 } from '@augurproject/tools';
 import { DB } from '@augurproject/sdk/build/state/db/DB';
 import { BigNumber } from 'bignumber.js';
-import { stringTo32ByteHex } from '../../../libs/Utils';
+import { stringTo32ByteHex } from '@augurproject/tools/build/libs/Utils';
 import { WSClient } from '@0x/mesh-rpc-client';
 import * as _ from 'lodash';
 import { EthersProvider } from '@augurproject/ethersjs-provider';

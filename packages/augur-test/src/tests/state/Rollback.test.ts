@@ -11,7 +11,7 @@ import {
   loadSeedFile,
   defaultSeedPath,
 } from '@augurproject/tools';
-import { stringTo32ByteHex } from '../../libs/Utils';
+import { stringTo32ByteHex } from '@augurproject/tools/build/libs/Utils';
 import { BigNumber } from 'bignumber.js';
 import { WSClient } from '@0x/mesh-rpc-client';
 import * as _ from 'lodash';

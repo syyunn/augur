@@ -1,19 +1,21 @@
-import { WSClient } from '@0x/mesh-rpc-client';
-import { BigNumber } from 'bignumber.js';
-import { formatBytes32String } from 'ethers/utils';
-import * as _ from 'lodash';
 import { ContractAPI, ACCOUNTS, loadSeedFile, defaultSeedPath } from '@augurproject/tools';
-import { EthersProvider } from '@augurproject/ethersjs-provider';
-import { ContractAddresses } from '@augurproject/artifacts';
+import { BigNumber } from 'bignumber.js';
+import { makeDbMock, makeProvider, MockGnosisRelayAPI } from '../../libs';
 import { DB } from '@augurproject/sdk/build/state/db/DB';
-import { Connectors, BrowserMesh } from '@augurproject/sdk';
+import { MockMeshServer, SERVER_PORT, stopServer } from '../../libs/MockMeshServer';
+import { WSClient } from '@0x/mesh-rpc-client';
+import { Connectors } from '@augurproject/sdk';
 import { API } from '@augurproject/sdk/build/state/getter/API';
+import { NULL_ADDRESS, stringTo32ByteHex } from '@augurproject/tools/build/libs/Utils';
 import { ZeroXOrders } from '@augurproject/sdk/build/state/getter/ZeroXOrdersGetters';
 import { sleep } from '@augurproject/core/build/libraries/HelperFunctions';
-import { MockMeshServer, stopServer } from '../../libs/MockMeshServer';
-import { NULL_ADDRESS, stringTo32ByteHex } from '../../libs/Utils';
 import { MockBrowserMesh } from '../../libs/MockBrowserMesh';
-import { makeDbMock, makeProvider, MockGnosisRelayAPI } from '../../libs';
+import { formatBytes32String } from 'ethers/utils';
+import * as _ from 'lodash';
+import { DEADBEEF_ADDRESS } from '@augurproject/tools';
+import { EthersProvider } from '@augurproject/ethersjs-provider';
+import { ContractAddresses } from '@augurproject/artifacts/build';
+import { BrowserMesh } from '@augurproject/sdk/build';
 
 describe('Augur API :: ZeroX :: ', () => {
   let john: ContractAPI;
@@ -32,8 +34,8 @@ describe('Augur API :: ZeroX :: ', () => {
   const mock = makeDbMock();
 
   beforeAll(async () => {
-    const { port } = await MockMeshServer.create();
-    meshClient = new WSClient(`ws://localhost:${port}`);
+    await MockMeshServer.create();
+    meshClient = new WSClient(`ws://localhost:${SERVER_PORT}`);
     meshBrowser = new MockBrowserMesh(meshClient);
 
     const seed = await loadSeedFile(defaultSeedPath);
@@ -51,8 +53,6 @@ describe('Augur API :: ZeroX :: ', () => {
       const johnConnector = new Connectors.DirectConnector();
       const johnGnosis = new MockGnosisRelayAPI();
       john = await ContractAPI.userWrapper(ACCOUNTS[0], provider, addresses, johnConnector, johnGnosis, meshClient, meshBrowser);
-      expect(john).toBeDefined();
-
       johnGnosis.initialize(john);
       johnDB = mock.makeDB(john.augur, ACCOUNTS);
       johnConnector.initialize(john.augur, await johnDB);
@@ -104,11 +104,6 @@ describe('Augur API :: ZeroX :: ', () => {
       const orders: ZeroXOrders = await johnAPI.route('getZeroXOrders', {
         marketId: market.address,
       });
-      expect(orders).toBeDefined();
-      expect(orders).toHaveProperty(market.address);
-      expect(orders[market.address]).toHaveProperty('0');
-      expect(orders[market.address]['0']).toHaveProperty('0');
-
       const thisOrder = _.values(orders[market.address][0]['0'])[0];
       // Get this order
       const order = await johnAPI.route('getZeroXOrder', {
@@ -269,10 +264,6 @@ describe('Augur API :: ZeroX :: ', () => {
       const orders: ZeroXOrders = await johnAPI.route('getZeroXOrders', {
         marketId: market.address,
       });
-      expect(orders).toBeDefined();
-      expect(orders).toHaveProperty(market.address);
-      expect(orders[market.address]).toHaveProperty('0');
-      expect(orders[market.address]['0']).toHaveProperty('0');
       const order = _.values(orders[market.address][0]['0'])[0];
 
       await john.cancelOrder(order.orderId);
@@ -345,18 +336,14 @@ describe('Augur API :: ZeroX :: ', () => {
   describe('without gnosis', () => {
     beforeAll(async () => {
       const johnConnector = new Connectors.DirectConnector();
-      const johnGnosis = new MockGnosisRelayAPI();
-      john = await ContractAPI.userWrapper(ACCOUNTS[0], provider, addresses, johnConnector, johnGnosis, meshClient, meshBrowser);
-      john.dependencies.setUseSafe(false)
+      john = await ContractAPI.userWrapper(ACCOUNTS[0], provider, addresses, johnConnector, undefined, meshClient, meshBrowser);
       johnDB = mock.makeDB(john.augur, ACCOUNTS);
       johnConnector.initialize(john.augur, await johnDB);
       johnAPI = new API(john.augur, johnDB);
       await john.approveCentralAuthority();
 
       const maryConnector = new Connectors.DirectConnector();
-      const maryGnosis = new MockGnosisRelayAPI();
-      mary = await ContractAPI.userWrapper(ACCOUNTS[1], provider, addresses, maryConnector, maryGnosis, meshClient, meshBrowser);
-      mary.dependencies.setUseSafe(false)
+      mary = await ContractAPI.userWrapper(ACCOUNTS[1], provider, addresses, maryConnector, undefined, meshClient, meshBrowser);
       maryDB = mock.makeDB(mary.augur, ACCOUNTS);
       maryConnector.initialize(mary.augur, await maryDB);
       maryAPI = new API(mary.augur, maryDB);
@@ -398,10 +385,6 @@ describe('Augur API :: ZeroX :: ', () => {
       const orders: ZeroXOrders = await johnAPI.route('getZeroXOrders', {
         marketId: market.address,
       });
-      expect(orders).toBeDefined();
-      expect(orders).toHaveProperty(market.address);
-      expect(orders[market.address]).toHaveProperty('0');
-      expect(orders[market.address]['0']).toHaveProperty('0');
       const order = _.values(orders[market.address][0]['0'])[0];
       await expect(order).not.toBeUndefined();
       await expect(order.price).toEqual('0.22');
