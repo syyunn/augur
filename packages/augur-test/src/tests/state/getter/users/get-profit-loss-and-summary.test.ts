@@ -1,13 +1,20 @@
-import { BigNumber } from 'bignumber.js';
+import { DB } from '@augurproject/sdk/build/state/db/DB';
 
 import { API } from '@augurproject/sdk/build/state/getter/API';
-import { DB } from '@augurproject/sdk/build/state/db/DB';
-import { ContractAPI} from '@augurproject/tools';
-import { makeDbMock} from '../../../../libs';
-import { TestEthersProvider } from '../../../../libs/TestEthersProvider';
-import { _beforeAll, _beforeEach, doTrade, SHORT } from './common';
+import { ContractAPI } from '@augurproject/tools';
+import { BigNumber } from 'bignumber.js';
 import * as _ from 'lodash';
-import { PLTradeData, LONG, YES } from './common';
+import { makeDbMock } from '../../../../libs';
+import { TestEthersProvider } from '@augurproject/tools/build/libs/TestEthersProvider';
+import {
+  _beforeAll,
+  _beforeEach,
+  doTrade,
+  LONG,
+  PLTradeData,
+  SHORT,
+  YES,
+} from './common';
 
 const mock = makeDbMock();
 

@@ -1,23 +1,24 @@
-import { makeDbMock, makeProvider, MockGnosisRelayAPI } from '../../../libs';
-import {
-  ContractAPI,
-  ACCOUNTS,
-  loadSeedFile,
-  defaultSeedPath,
-} from '@augurproject/tools';
+import { WSClient } from '@0x/mesh-rpc-client';
+import { ContractAddresses } from '@augurproject/artifacts';
+import { EthersProvider } from '@augurproject/ethersjs-provider';
+import { BrowserMesh, Connectors } from '@augurproject/sdk';
 import { DB } from '@augurproject/sdk/build/state/db/DB';
 import { API } from '@augurproject/sdk/build/state/getter/API';
-import { BigNumber } from 'bignumber.js';
-import { stringTo32ByteHex } from '@augurproject/tools/build/libs/Utils';
 import { MarketLiquidityRanking } from '@augurproject/sdk/build/state/getter/Liquidity';
+import {
+  ACCOUNTS,
+  ContractAPI,
+  defaultSeedPath,
+  loadSeedFile,
+} from '@augurproject/tools';
+import { stringTo32ByteHex } from '@augurproject/tools/build/libs/Utils';
+import { BigNumber } from 'bignumber.js';
 import { formatBytes32String } from 'ethers/utils';
-import { WSClient } from '@0x/mesh-rpc-client';
-import * as _ from 'lodash';
-import { EthersProvider } from '@augurproject/ethersjs-provider';
-import { ContractAddresses } from '@augurproject/artifacts';
-import { Connectors, BrowserMesh } from '@augurproject/sdk';
-import { MockMeshServer, stopServer } from '../../../libs/MockMeshServer';
+import { makeDbMock, makeProvider, MockGnosisRelayAPI } from '../../../libs';
 import { MockBrowserMesh } from '../../../libs/MockBrowserMesh';
+import { MockMeshServer, stopServer } from '../../../libs/MockMeshServer';
+
+const mock = makeDbMock();
 
 describe('State API :: Liquidity', () => {
   let john: ContractAPI;

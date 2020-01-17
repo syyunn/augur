@@ -1,6 +1,6 @@
 import { Augur } from '@augurproject/sdk';
-import { makeTestAugur, makeDbMock } from '../../libs';
-import { ACCOUNTS, loadSeedFile, defaultSeedPath } from "@augurproject/tools";
+import { ACCOUNTS, defaultSeedPath, loadSeedFile } from '@augurproject/tools';
+import { makeDbMock, makeTestAugur } from '../../libs';
 
 let mock = null;
 

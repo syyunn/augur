@@ -7,7 +7,6 @@ import { Subscriptions } from '../subscriptions';
 import { DB } from './db/DB';
 import { Markets } from './getter/Markets';
 import { LogFilterAggregatorInterface } from './logs/LogFilterAggregator';
-import { AbstractSyncStrategy } from './sync/AbstractSyncStrategy';
 
 const settings = require('./settings.json');
 
@@ -27,25 +26,6 @@ export class Controller {
     // this.logFilterAggregator.listenForBlockRemoved(
     //   db.rollback.bind(db)
     // );
-  }
-
-  async run(): Promise<void> {
-    try {
-      this.blockAndLogStreamerListener.notifyNewBlockAfterLogsProcess(this.notifyNewBlockEvent.bind(this));
-
-      const db = await this.db;
-      await db.sync(this.augur, settings.chunkSize, settings.blockstreamDelay);
-
-      const warp = await WarpController.create(db);
-      warp.createAllCheckpoints();
-
-      this.blockAndLogStreamerListener.listenForBlockRemoved(
-        db.rollback.bind(db)
-      );
-      this.blockAndLogStreamerListener.startBlockStreamListener();
-    } catch (err) {
-      console.log(err);
-    }
   }
 
   private updateMarketsData = async (blockNumber: number, allLogs: ParsedLog[]) => {

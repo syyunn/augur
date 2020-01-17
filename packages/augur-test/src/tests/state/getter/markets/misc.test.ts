@@ -1,19 +1,18 @@
+import { ORDER_TYPES, SECONDS_IN_A_DAY } from '@augurproject/sdk';
+import { MarketReportingState } from '@augurproject/sdk/build/constants';
+import { DB } from '@augurproject/sdk/build/state/db/DB';
 import { API } from '@augurproject/sdk/build/state/getter/API';
 import {
-  MarketInfo,
   MarketList,
-  MarketOrderBook
+  MarketOrderBook,
 } from '@augurproject/sdk/build/state/getter/Markets';
-import { DB } from '@augurproject/sdk/build/state/db/DB';
-import { MarketReportingState } from '@augurproject/sdk/build/constants';
-import { ACCOUNTS, ContractAPI} from '@augurproject/tools';
-import { BigNumber } from 'bignumber.js';
-import { ORDER_TYPES, SECONDS_IN_A_DAY } from '@augurproject/sdk';
-import { getAddress } from 'ethers/utils/address';
-import * as _ from 'lodash';
-import { makeDbMock} from '../../../../libs';
+import { ACCOUNTS, ContractAPI } from '@augurproject/tools';
 import { TestEthersProvider } from '@augurproject/tools/build/libs/TestEthersProvider';
 import { stringTo32ByteHex } from '@augurproject/tools/build/libs/Utils';
+import { BigNumber } from 'bignumber.js';
+import { getAddress } from 'ethers/utils/address';
+import * as _ from 'lodash';
+import { makeDbMock } from '../../../../libs';
 import {
   _beforeAll,
   _beforeEach,

@@ -1,49 +1,34 @@
 import { WSClient } from '@0x/mesh-rpc-client';
+import { ContractAddresses } from '@augurproject/artifacts';
+import { sleep } from '@augurproject/core/build/libraries/HelperFunctions';
+import { EthersProvider } from '@augurproject/ethersjs-provider';
+import {
+  BrowserMesh,
+  Connectors,
+  MarketReportingState,
+} from '@augurproject/sdk';
+import { DB } from '@augurproject/sdk/build/state/db/DB';
+import { API } from '@augurproject/sdk/build/state/getter/API';
+import {
+  GetMarketsSortBy,
+  MarketList,
+} from '@augurproject/sdk/build/state/getter/Markets';
+import {
+  ACCOUNTS,
+  ContractAPI,
+  defaultSeedPath,
+  loadSeedFile,
+} from '@augurproject/tools';
+import {
+  NULL_ADDRESS,
+  stringTo32ByteHex,
+} from '@augurproject/tools/build/libs/Utils';
 import { BigNumber } from 'bignumber.js';
 import { formatBytes32String } from 'ethers/utils';
 import * as _ from 'lodash';
-import {
-  ContractAPI,
-  ACCOUNTS,
-  loadSeedFile,
-  defaultSeedPath,
-} from '@augurproject/tools';
-import { EthersProvider } from '@augurproject/ethersjs-provider';
-import { ContractAddresses } from '@augurproject/artifacts';
-import { DB } from '@augurproject/sdk/build/state/db/DB';
-import {
-  Connectors,
-  BrowserMesh,
-  MarketReportingState,
-} from '@augurproject/sdk';
-import { API } from '@augurproject/sdk/build/state/getter/API';
-import {
-  sleep,
-  stringTo32ByteHex,
-} from '@augurproject/core/build/libraries/HelperFunctions';
-import { MockMeshServer, stopServer } from '../../../../libs/MockMeshServer';
-import { MockBrowserMesh } from '../../../../libs/MockBrowserMesh';
 import { makeDbMock, makeProvider, MockGnosisRelayAPI } from '../../../../libs';
-import {
-  MarketList,
-  GetMarketsSortBy,
-} from '@augurproject/sdk/build/state/getter/Markets';
-import { DB } from '@augurproject/sdk/build/state/db/DB';
-import { MarketReportingState } from '@augurproject/sdk/build/constants';
-import { ACCOUNTS, ContractAPI } from '@augurproject/tools';
-import { BigNumber } from 'bignumber.js';
-import { ORDER_TYPES, SECONDS_IN_A_DAY } from '@augurproject/sdk';
-import * as _ from 'lodash';
-import { TestEthersProvider } from '@augurproject/tools/build/libs/TestEthersProvider';
-import { NULL_ADDRESS, stringTo32ByteHex } from '@augurproject/tools/build/libs/Utils';
-import {
-  _beforeAll,
-  _beforeEach,
-  CHUNK_SIZE,
-  outcome0,
-  outcome1,
-} from './common';
-import { NULL_ADDRESS } from '../../../../libs/Utils';
+import { MockBrowserMesh } from '../../../../libs/MockBrowserMesh';
+import { MockMeshServer, stopServer } from '../../../../libs/MockMeshServer';
 
 describe('State API :: General', () => {
   let john: ContractAPI;

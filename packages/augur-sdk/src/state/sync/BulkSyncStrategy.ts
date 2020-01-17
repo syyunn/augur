@@ -45,11 +45,10 @@ export class BulkSyncStrategy extends AbstractSyncStrategy implements SyncStrate
       highestSyncedBlockNumber = Math.min(endBlockNumber, highestSyncedBlockNumber + this.chunkSize);
       const logsWeCareAbout = logs.filter(item => address.includes(item.address));
 
-      const groupedLogs = _.groupBy(logsWeCareAbout, 'blockNumber');
+      const sortedLogs = _.orderBy(logsWeCareAbout, ['logIndex', 'blockNumber'], ['asc', 'asc']);
+      const maxBlock = _.maxBy(sortedLogs, 'blockNumber');
 
-      for (let i = fromBlock; i < toBlock; i++) {
-        await this.onLogsAdded(i, this.parseLogs(_.get(groupedLogs, i.toString(), [])));
-      }
+      await this.onLogsAdded(highestSyncedBlockNumber, this.parseLogs(sortedLogs));
     }
 
     return endBlockNumber;

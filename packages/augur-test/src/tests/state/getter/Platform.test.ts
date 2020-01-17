@@ -1,13 +1,17 @@
-import { API } from '@augurproject/sdk/build/state/getter/API';
+import { ContractInterfaces } from '@augurproject/core';
 import { DB } from '@augurproject/sdk/build/state/db/DB';
-import { makeDbMock, makeProvider } from '../../../libs';
-import { ContractAPI, ACCOUNTS, loadSeedFile, defaultSeedPath } from '@augurproject/tools';
+import { API } from '@augurproject/sdk/build/state/getter/API';
+import { PlatformActivityStatsResult } from '@augurproject/sdk/build/state/getter/Platform';
+import {
+  ACCOUNTS,
+  ContractAPI,
+  defaultSeedPath,
+  fork,
+  loadSeedFile,
+} from '@augurproject/tools';
 import { stringTo32ByteHex } from '@augurproject/tools/build/libs/Utils';
 import { BigNumber } from 'bignumber.js';
-import { ContractInterfaces } from '@augurproject/core';
-import { PlatformActivityStatsResult } from '@augurproject/sdk/build/state/getter/Platform';
-import { fork } from '@augurproject/tools';
-import uuid = require('uuid');
+import { makeDbMock, makeProvider } from '../../../libs';
 
 const mock = makeDbMock();
 

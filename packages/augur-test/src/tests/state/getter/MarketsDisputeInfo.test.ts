@@ -1,13 +1,16 @@
-import { API } from '@augurproject/sdk/build/state/getter/API';
-import { DB } from '@augurproject/sdk/build/state/db/DB';
-import { MarketReportingState } from '@augurproject/sdk/build/constants';
-import { makeDbMock, makeProvider } from '../../../libs';
-import { ContractAPI, ACCOUNTS, loadSeedFile, defaultSeedPath } from '@augurproject/tools';
-import { BigNumber } from 'bignumber.js';
 import { SECONDS_IN_A_DAY } from '@augurproject/sdk';
-
-import * as _ from 'lodash';
+import { MarketReportingState } from '@augurproject/sdk/build/constants';
+import { DB } from '@augurproject/sdk/build/state/db/DB';
+import { API } from '@augurproject/sdk/build/state/getter/API';
+import {
+  ACCOUNTS,
+  ContractAPI,
+  defaultSeedPath,
+  loadSeedFile,
+} from '@augurproject/tools';
 import { TestEthersProvider } from '@augurproject/tools/build/libs/TestEthersProvider';
+import { BigNumber } from 'bignumber.js';
+import { makeDbMock, makeProvider } from '../../../libs';
 
 const CHUNK_SIZE = 100000;
 

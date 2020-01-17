@@ -32,7 +32,6 @@ export function makeDbMock(prefix:string = uuid.v4()) {
     return {
       listenForBlockRemoved: jest.fn(),
       listenForBlockAdded: jest.fn(),
-      startBlockStreamListener: jest.fn(),
     };
   }
 
@@ -55,7 +54,7 @@ export function makeDbMock(prefix:string = uuid.v4()) {
       );
 
       const db = DB.createAndInitializeDB(
-        constants.networkId,
+        iterator.next().value,
         logFilterAggregator,
         augur,
         !!augur.zeroX,

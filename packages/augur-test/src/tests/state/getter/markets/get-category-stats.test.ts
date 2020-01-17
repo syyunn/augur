@@ -1,17 +1,11 @@
-import { API } from '@augurproject/sdk/build/state/getter/API';
-import { DB } from '@augurproject/sdk/build/state/db/DB';
-import { ContractAPI } from '@augurproject/tools';
-import { BigNumber } from 'bignumber.js';
 import { ORDER_TYPES } from '@augurproject/sdk';
+import { DB } from '@augurproject/sdk/build/state/db/DB';
+import { API } from '@augurproject/sdk/build/state/getter/API';
+import { ContractAPI } from '@augurproject/tools';
 import { TestEthersProvider } from '@augurproject/tools/build/libs/TestEthersProvider';
 import { stringTo32ByteHex } from '@augurproject/tools/build/libs/Utils';
-import {
-  _beforeAll,
-  _beforeEach,
-  CHUNK_SIZE,
-  outcome0,
-  outcome1,
-} from './common';
+import { BigNumber } from 'bignumber.js';
+import { _beforeAll, _beforeEach, CHUNK_SIZE, outcome1 } from './common';
 
 describe('State API :: Markets :: Categories', () => {
   let db: Promise<DB>;

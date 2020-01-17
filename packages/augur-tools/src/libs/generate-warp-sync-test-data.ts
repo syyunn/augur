@@ -1,11 +1,11 @@
-import { ORDER_TYPES } from '@augurproject/sdk';
+import { ORDER_TYPES, SECONDS_IN_A_DAY } from '@augurproject/sdk';
+
+import { BigNumber } from 'bignumber.js';
 
 import { ACCOUNTS } from '../constants';
 import { ContractAPI } from './contract-api';
 import { extractSeed } from './ganache';
 import { makeProviderWithDB } from './LocalAugur';
-
-import { BigNumber } from 'bignumber.js';
 import { stringTo32ByteHex } from './Utils';
 
 const outcome0 = new BigNumber(0);
@@ -36,6 +36,10 @@ export async function generateWarpSyncTestData(seed) {
     [stringTo32ByteHex('A'), stringTo32ByteHex('B'), stringTo32ByteHex('C')]
   );
 
+  // Move timestamp ahead 12 hours.
+  await provider.provider.send('evm_increaseTime', [SECONDS_IN_A_DAY.toNumber() / 2]);
+
+
   // Place orders
   const numShares = new BigNumber(10000000000000);
   const price = new BigNumber(22);
@@ -49,6 +53,8 @@ export async function generateWarpSyncTestData(seed) {
     stringTo32ByteHex(''),
     stringTo32ByteHex('42')
   );
+
+
   await john.placeOrder(
     yesNoMarket.address,
     ORDER_TYPES.BID,
@@ -59,6 +65,10 @@ export async function generateWarpSyncTestData(seed) {
     stringTo32ByteHex(''),
     stringTo32ByteHex('42')
   );
+
+  // Move timestamp ahead 12 hours.
+  await provider.provider.send('evm_increaseTime', [SECONDS_IN_A_DAY.toNumber() / 2]);
+
   await john.placeOrder(
     categoricalMarket.address,
     ORDER_TYPES.BID,
@@ -93,6 +103,12 @@ export async function generateWarpSyncTestData(seed) {
     yesNoMarket.address,
     outcome1
   );
+
+  await john.augur.warpSync.initializeUniverse(seed.addresses.Universe);
+
+  // Move timestamp ahead 12 hours.
+  await provider.provider.send('evm_increaseTime', [SECONDS_IN_A_DAY.toNumber() / 2]);
+
   const categoricalOrderId0 = await john.getBestOrderId(
     ORDER_TYPES.BID,
     categoricalMarket.address,
@@ -108,16 +124,25 @@ export async function generateWarpSyncTestData(seed) {
     numShares.div(10).multipliedBy(2),
     '42'
   );
+
+  // Move timestamp ahead 12 hours.
+  await provider.provider.send('evm_increaseTime', [SECONDS_IN_A_DAY.toNumber() / 2]);
   await mary.fillOrder(
     yesNoOrderId1,
     numShares.div(10).multipliedBy(3),
     '43'
   );
+
+  // Move timestamp ahead 12 hours.
+  await provider.provider.send('evm_increaseTime', [SECONDS_IN_A_DAY.toNumber() / 2]);
   await mary.fillOrder(
     categoricalOrderId0,
     numShares.div(10).multipliedBy(2),
     '43'
   );
+
+  // Move timestamp ahead 12 hours.
+  await provider.provider.send('evm_increaseTime', [SECONDS_IN_A_DAY.toNumber() / 2]);
   await mary.fillOrder(
     categoricalOrderId1,
     numShares.div(10).multipliedBy(4),

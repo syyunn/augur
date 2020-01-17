@@ -1,27 +1,25 @@
-import { Augur } from '@augurproject/sdk';
+import { WSClient } from '@0x/mesh-rpc-client';
+import { ContractAddresses } from '@augurproject/artifacts';
+import { EthersProvider } from '@augurproject/ethersjs-provider';
+import { Augur, Connectors } from '@augurproject/sdk';
+import { DB } from '@augurproject/sdk/build/state/db/DB';
+import { API } from '@augurproject/sdk/build/state/getter/API';
 import {
-  makeTestAugur,
-  makeDbMock,
-  makeProvider,
-  MockGnosisRelayAPI,
-} from '../../libs';
-import {
-  ContractAPI,
   ACCOUNTS,
-  loadSeedFile,
+  ContractAPI,
   defaultSeedPath,
+  loadSeedFile,
 } from '@augurproject/tools';
 import { stringTo32ByteHex } from '@augurproject/tools/build/libs/Utils';
 import { BigNumber } from 'bignumber.js';
-import { WSClient } from '@0x/mesh-rpc-client';
-import * as _ from 'lodash';
-import { EthersProvider } from '@augurproject/ethersjs-provider';
-import { ContractAddresses } from '@augurproject/artifacts';
-import { DB } from '@augurproject/sdk/build/state/db/DB';
-import { Connectors, BrowserMesh } from '@augurproject/sdk';
-import { API } from '@augurproject/sdk/build/state/getter/API';
-import { MockMeshServer, stopServer } from '../../libs/MockMeshServer';
+import {
+  makeDbMock,
+  makeProvider,
+  makeTestAugur,
+  MockGnosisRelayAPI,
+} from '../../libs';
 import { MockBrowserMesh } from '../../libs/MockBrowserMesh';
+import { MockMeshServer, stopServer } from '../../libs/MockMeshServer';
 
 const mock = makeDbMock();
 let augur: Augur;

@@ -1,16 +1,10 @@
-import { makeDbMock, makeProvider } from '../../libs';
-import { ContractAPI, loadSeedFile, ACCOUNTS, defaultSeedPath } from '@augurproject/tools';
-import { API } from '@augurproject/sdk/build/state/getter/API';
-import { BigNumber } from 'bignumber.js';
 import { ContractAddresses } from '@augurproject/artifacts';
 import { EthersProvider } from '@augurproject/ethersjs-provider';
 import { SECONDS_IN_A_DAY } from '@augurproject/sdk';
 import { SingleThreadConnector } from '@augurproject/sdk/build/connector';
 import { SubscriptionEventName } from '@augurproject/sdk/build/constants';
+import { MarketCreated } from '@augurproject/sdk/build/events';
 import { SDKConfiguration } from '@augurproject/sdk/build/state';
-import { MarketCreated } from '@augurproject/sdk/build/events';
-import { SECONDS_IN_A_DAY } from '@augurproject/sdk';
-import { MarketCreated } from '@augurproject/sdk/build/events';
 import { Controller } from '@augurproject/sdk/build/state/Controller';
 import { DB } from '@augurproject/sdk/build/state/db/DB';
 import { API } from '@augurproject/sdk/build/state/getter/API';
@@ -63,8 +57,6 @@ jest.mock('@augurproject/sdk/build/state/create-api', () => {
         db,
         logFilterAggregator
       );
-
-      controller.run();
 
       return api;
     },

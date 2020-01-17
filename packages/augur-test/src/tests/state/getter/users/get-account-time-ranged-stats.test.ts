@@ -1,13 +1,13 @@
-import { BigNumber } from 'bignumber.js';
+import { SECONDS_IN_A_DAY } from '@augurproject/sdk';
+import { DB } from '@augurproject/sdk/build/state/db/DB';
 
 import { API } from '@augurproject/sdk/build/state/getter/API';
-import { DB } from '@augurproject/sdk/build/state/db/DB';
-import { ContractAPI, ACCOUNTS} from '@augurproject/tools';
-import { SECONDS_IN_A_DAY } from '@augurproject/sdk';
+import { ACCOUNTS, ContractAPI } from '@augurproject/tools';
+import { TestEthersProvider } from '@augurproject/tools/build/libs/TestEthersProvider';
+import { stringTo32ByteHex } from '@augurproject/tools/build/libs/Utils';
+import { BigNumber } from 'bignumber.js';
 import { formatBytes32String } from 'ethers/utils';
-import { makeDbMock} from '../../../../libs';
-import { stringTo32ByteHex } from '../../../../libs/Utils';
-import { TestEthersProvider } from '../../../../libs/TestEthersProvider';
+import { makeDbMock } from '../../../../libs';
 import { _beforeAll, _beforeEach } from './common';
 
 const mock = makeDbMock();

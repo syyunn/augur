@@ -1,17 +1,22 @@
-import { API } from '@augurproject/sdk/build/state/getter/API';
-import { DB } from '@augurproject/sdk/build/state/db/DB';
-import { makeDbMock, makeProvider } from '../../../../libs';
-import { ACCOUNTS, ContractAPI, defaultSeedPath, loadSeedFile } from '@augurproject/tools';
-import { stringTo32ByteHex } from '../../../../libs/Utils';
-import { BigNumber } from 'bignumber.js';
-import { TestEthersProvider } from '../../../../libs/TestEthersProvider';
-import * as _ from 'lodash';
+import { ContractInterfaces } from '@augurproject/core';
 import {
   convertDisplayAmountToOnChainAmount,
   convertDisplayPriceToOnChainPrice,
   numTicksToTickSize,
 } from '@augurproject/sdk';
-import { ContractInterfaces } from '@augurproject/core';
+import { DB } from '@augurproject/sdk/build/state/db/DB';
+import { API } from '@augurproject/sdk/build/state/getter/API';
+import {
+  ACCOUNTS,
+  ContractAPI,
+  defaultSeedPath,
+  loadSeedFile,
+} from '@augurproject/tools';
+import { BigNumber } from 'bignumber.js';
+import * as _ from 'lodash';
+import { makeDbMock, makeProvider } from '../../../../libs';
+import { TestEthersProvider } from '@augurproject/tools/build/libs/TestEthersProvider';
+import { stringTo32ByteHex } from '@augurproject/tools/build/libs/Utils';
 
 export interface TradeData {
   direction: number;

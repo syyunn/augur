@@ -1,14 +1,22 @@
-import { API } from '@augurproject/sdk/build/state/getter/API';
 import { DB } from '@augurproject/sdk/build/state/db/DB';
-import { makeDbMock, makeProvider } from '../../../libs';
-import { ContractAPI, ACCOUNTS, loadSeedFile, defaultSeedPath } from '@augurproject/tools';
-import { BigNumber } from 'bignumber.js';
-import { fork } from '@augurproject/tools';
-import { formatBytes32String } from 'ethers/utils';
+import { API } from '@augurproject/sdk/build/state/getter/API';
 import { UniverseDetails } from '@augurproject/sdk/build/state/getter/Universe';
-import { getPayoutNumerators, makeValidScalarOutcome } from '@augurproject/tools/build/flash/fork';
-import { NULL_ADDRESS } from '@augurproject/tools/build/libs/Utils';
+import {
+  ACCOUNTS,
+  ContractAPI,
+  defaultSeedPath,
+  fork,
+  loadSeedFile,
+} from '@augurproject/tools';
+import {
+  getPayoutNumerators,
+  makeValidScalarOutcome,
+} from '@augurproject/tools/build/flash/fork';
 import { TestEthersProvider } from '@augurproject/tools/build/libs/TestEthersProvider';
+import { NULL_ADDRESS } from '@augurproject/tools/build/libs/Utils';
+import { BigNumber } from 'bignumber.js';
+import { formatBytes32String } from 'ethers/utils';
+import { makeDbMock, makeProvider } from '../../../libs';
 
 const mock = makeDbMock();
 

@@ -1,21 +1,32 @@
-import { ContractAPI, ACCOUNTS, loadSeedFile, defaultSeedPath } from '@augurproject/tools';
-import { BigNumber } from 'bignumber.js';
-import { makeDbMock, makeProvider, MockGnosisRelayAPI } from '../../libs';
-import { DB } from '@augurproject/sdk/build/state/db/DB';
-import { MockMeshServer, SERVER_PORT, stopServer } from '../../libs/MockMeshServer';
 import { WSClient } from '@0x/mesh-rpc-client';
-import { Connectors } from '@augurproject/sdk';
-import { API } from '@augurproject/sdk/build/state/getter/API';
-import { NULL_ADDRESS, stringTo32ByteHex } from '@augurproject/tools/build/libs/Utils';
-import { ZeroXOrders } from '@augurproject/sdk/build/state/getter/ZeroXOrdersGetters';
+import { ContractAddresses } from '@augurproject/artifacts/build';
 import { sleep } from '@augurproject/core/build/libraries/HelperFunctions';
-import { MockBrowserMesh } from '../../libs/MockBrowserMesh';
+import { EthersProvider } from '@augurproject/ethersjs-provider';
+import { Connectors } from '@augurproject/sdk';
+import { BrowserMesh } from '@augurproject/sdk/build';
+import { DB } from '@augurproject/sdk/build/state/db/DB';
+import { API } from '@augurproject/sdk/build/state/getter/API';
+import { ZeroXOrders } from '@augurproject/sdk/build/state/getter/ZeroXOrdersGetters';
+import {
+  ACCOUNTS,
+  ContractAPI,
+  defaultSeedPath,
+  loadSeedFile,
+} from '@augurproject/tools';
+import {
+  NULL_ADDRESS,
+  stringTo32ByteHex,
+} from '@augurproject/tools/build/libs/Utils';
+import { BigNumber } from 'bignumber.js';
 import { formatBytes32String } from 'ethers/utils';
 import * as _ from 'lodash';
-import { DEADBEEF_ADDRESS } from '@augurproject/tools';
-import { EthersProvider } from '@augurproject/ethersjs-provider';
-import { ContractAddresses } from '@augurproject/artifacts/build';
-import { BrowserMesh } from '@augurproject/sdk/build';
+import { makeDbMock, makeProvider, MockGnosisRelayAPI } from '../../libs';
+import { MockBrowserMesh } from '../../libs/MockBrowserMesh';
+import {
+  MockMeshServer,
+  SERVER_PORT,
+  stopServer,
+} from '../../libs/MockMeshServer';
 
 describe('Augur API :: ZeroX :: ', () => {
   let john: ContractAPI;

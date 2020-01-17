@@ -1,9 +1,14 @@
-import { API } from '@augurproject/sdk/build/state/getter/API';
-import { DB } from '@augurproject/sdk/build/state/db/DB';
-import { makeDbMock, makeProvider } from '../../../libs';
-import { ContractAPI, loadSeedFile, ACCOUNTS, defaultSeedPath } from '@augurproject/tools';
-import { BigNumber } from 'bignumber.js';
 import { SECONDS_IN_A_DAY } from '@augurproject/sdk';
+import { DB } from '@augurproject/sdk/build/state/db/DB';
+import { API } from '@augurproject/sdk/build/state/getter/API';
+import {
+  ACCOUNTS,
+  ContractAPI,
+  defaultSeedPath,
+  loadSeedFile,
+} from '@augurproject/tools';
+import { BigNumber } from 'bignumber.js';
+import { makeDbMock, makeProvider } from '../../../libs';
 
 const mock = makeDbMock();
 

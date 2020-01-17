@@ -1,19 +1,29 @@
-import { ContractAPI, ACCOUNTS } from '@augurproject/tools';
-import { BigNumber } from 'bignumber.js';
-import { makeDbMock } from '../../libs';
-import { DB } from '@augurproject/sdk/build/state/db/DB';
 import { WSClient } from '@0x/mesh-rpc-client';
-import { Connectors } from '@augurproject/sdk';
-import { API } from '@augurproject/sdk/build/state/getter/API';
-import { stringTo32ByteHex } from '@augurproject/tools/build/libs/Utils';
-import { ZeroXOrder, ZeroXOrders } from "@augurproject/sdk/build/state/getter/ZeroXOrdersGetters";
+import {
+  Addresses,
+  ContractAddresses,
+  NetworkId,
+} from '@augurproject/artifacts';
 import { sleep } from '@augurproject/core/build/libraries/HelperFunctions';
+import { EthersProvider } from '@augurproject/ethersjs-provider';
+import {
+  GnosisRelayAPI,
+  GnosisSafeState,
+} from '@augurproject/gnosis-relay-api';
+import { Connectors } from '@augurproject/sdk';
+import { DB } from '@augurproject/sdk/build/state/db/DB';
+import { API } from '@augurproject/sdk/build/state/getter/API';
+import {
+  ZeroXOrder,
+  ZeroXOrders,
+} from '@augurproject/sdk/build/state/getter/ZeroXOrdersGetters';
+import { ACCOUNTS, ContractAPI } from '@augurproject/tools';
+import { stringTo32ByteHex } from '@augurproject/tools/build/libs/Utils';
+import { BigNumber } from 'bignumber.js';
+import { JsonRpcProvider } from 'ethers/providers';
 import { formatBytes32String } from 'ethers/utils';
 import * as _ from 'lodash';
-import { EthersProvider } from '@augurproject/ethersjs-provider';
-import { JsonRpcProvider } from 'ethers/providers';
-import { Addresses, ContractAddresses, NetworkId } from '@augurproject/artifacts';
-import { GnosisRelayAPI, GnosisSafeState } from '@augurproject/gnosis-relay-api';
+import { makeDbMock } from '../../libs';
 
 describe('3rd Party :: ZeroX :: ', () => {
   let john: ContractAPI;

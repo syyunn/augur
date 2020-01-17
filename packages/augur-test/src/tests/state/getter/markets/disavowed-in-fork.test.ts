@@ -1,13 +1,8 @@
-import { API } from '@augurproject/sdk/build/state/getter/API';
 import { DB } from '@augurproject/sdk/build/state/db/DB';
+import { API } from '@augurproject/sdk/build/state/getter/API';
 import { ContractAPI, fork } from '@augurproject/tools';
 import { TestEthersProvider } from '@augurproject/tools/build/libs/TestEthersProvider';
-import {
-  _beforeAll,
-  _beforeEach,
-  CHUNK_SIZE,
-  } from './common';
-
+import { _beforeAll, _beforeEach, CHUNK_SIZE } from './common';
 
 describe('State API :: Markets :: GetMarketsInfo', () => {
   let db: Promise<DB>;

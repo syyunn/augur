@@ -13750,9 +13750,9 @@ ipfs-log@next:
     p-whilst "^1.0.0"
 
 ipfs-mfs@^0.13.0:
-  version "0.13.2"
-  resolved "https://registry.yarnpkg.com/ipfs-mfs/-/ipfs-mfs-0.13.2.tgz#1f6de8f893779231011ab084504b781c8e9d27b6"
-  integrity sha512-7ZbQREWPzRxGhTu3zTXW8XVpE77bfYIp7GLtb2XS9FgmEXDYqpyXeN91iEdKmLHjhXolP6656WAhhaJ+m1NCeg==
+  version "0.13.1"
+  resolved "https://registry.yarnpkg.com/ipfs-mfs/-/ipfs-mfs-0.13.1.tgz#34a7a7a22c9754f447b39253af24a10f5a36fb06"
+  integrity sha512-+p2LlhZUMZSvkAoce0za3fQtnKXnztHgKu4A5sbIoyGxNWW/MESwsM3PHVr/ke3Da0cPDI6B/Nfn/oGKQv/poQ==
   dependencies:
     "@hapi/boom" "^7.4.2"
     "@hapi/joi" "^15.1.0"
@@ -13768,7 +13768,7 @@ ipfs-mfs@^0.13.0:
     ipfs-unixfs-importer "~0.40.0"
     ipld-dag-pb "~0.18.0"
     joi-browser "^13.4.0"
-    mortice "^2.0.0"
+    mortice "^1.2.1"
     multicodec "~0.5.3"
     multihashes "~0.4.14"
     once "^1.4.0"
@@ -14229,7 +14229,7 @@ ipld-dag-cbor@~0.15.0:
     multicodec "^1.0.0"
     multihashing-async "~0.8.0"
 
-ipld-dag-pb@0.18.1:
+ipld-dag-pb@0.18.1, ipld-dag-pb@^0.18.0, ipld-dag-pb@^0.18.1, ipld-dag-pb@~0.18.0, ipld-dag-pb@~0.18.1:
   version "0.18.1"
   resolved "https://registry.yarnpkg.com/ipld-dag-pb/-/ipld-dag-pb-0.18.1.tgz#96ee79aed8bdcddb913e82df5f70dd8bc5435ecd"
   integrity sha512-YU2k7kfhV9uliVCAdIyJkYnTLNMdc4FyM2q2dZjfvegdzJFw5Ts8IHnMU77CCLIyD2cc/3xvf9dLIzMIBZpV1A==
@@ -14250,18 +14250,6 @@ ipld-dag-pb@^0.17.4, ipld-dag-pb@~0.17.3:
     class-is "^1.1.0"
     multicodec "~0.5.1"
     multihashing-async "~0.7.0"
-    protons "^1.0.1"
-    stable "~0.1.8"
-
-ipld-dag-pb@^0.18.0, ipld-dag-pb@^0.18.1, ipld-dag-pb@~0.18.0, ipld-dag-pb@~0.18.1:
-  version "0.18.2"
-  resolved "https://registry.yarnpkg.com/ipld-dag-pb/-/ipld-dag-pb-0.18.2.tgz#7d939c5cb4f3902872bb6c5fae2e1b51ebb71705"
-  integrity sha512-CG+PIPoOmHr0AnQjijRoY633VzozWRn45zLoJ+qjiSS7r7Dy5JrScWpq4t3DOsCID7blV3ULRfRLcuvvs2SlSA==
-  dependencies:
-    cids "~0.7.1"
-    class-is "^1.1.0"
-    multicodec "^1.0.0"
-    multihashing-async "~0.8.0"
     protons "^1.0.1"
     stable "~0.1.8"
 
@@ -18276,6 +18264,16 @@ moo@^0.5.0:
   version "0.5.1"
   resolved "https://registry.yarnpkg.com/moo/-/moo-0.5.1.tgz#7aae7f384b9b09f620b6abf6f74ebbcd1b65dbc4"
   integrity sha512-I1mnb5xn4fO80BH9BLcF0yLypy2UKl+Cb01Fu0hJRkJjlCRtxZMWkTdAtDd5ZqCOxtCkhmRwyI57vWT+1iZ67w==
+
+mortice@^1.2.1:
+  version "1.2.3"
+  resolved "https://registry.yarnpkg.com/mortice/-/mortice-1.2.3.tgz#8e92963d67708dc229a98d5b65ebaa1fc4afb7fd"
+  integrity sha512-m285eSxSrbNieKgWWzGSbWO2oSoFHb2fdZX306afMVJ8p8boeAmUW5hCyZBC/gHuBMizR7wO9sXH74kZmf0ZbA==
+  dependencies:
+    observable-webworkers "^1.0.0"
+    p-queue "^6.0.0"
+    promise-timeout "^1.3.0"
+    shortid "^2.2.8"
 
 mortice@^2.0.0:
   version "2.0.0"
@@ -24807,9 +24805,9 @@ stream-to-pull-stream@^1.7.1, stream-to-pull-stream@^1.7.2, stream-to-pull-strea
     pull-stream "^3.2.3"
 
 streaming-iterables@^4.1.0:
-  version "4.1.2"
-  resolved "https://registry.yarnpkg.com/streaming-iterables/-/streaming-iterables-4.1.2.tgz#0a98f1460be70d8bf904f7fffaeb10b16ed708ab"
-  integrity sha512-IzhmKnQ2thkNMUcaGsjedrxdAoXPhtIFn8hUlmSqSqafa2p0QmZudu6ImG7ckvPNfazpMfr6Ef8cxUWyIyxpxA==
+  version "4.1.1"
+  resolved "https://registry.yarnpkg.com/streaming-iterables/-/streaming-iterables-4.1.1.tgz#64b14c42c483c9b087a916caf616739cb7f2d3ea"
+  integrity sha512-1KDZL6lgbFEfkFZ4k4eX5GscE9jAhJO+9YP6wrhgLO6VADNQr4pYpbOLV5VLBdlR/fCoEO2aXBjEeb+1aIGXGw==
 
 strftime@~0.10.0:
   version "0.10.0"

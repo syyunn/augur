@@ -1,29 +1,22 @@
 import { ContractAddresses, NetworkId } from '@augurproject/artifacts';
 import { NetworkConfiguration } from '@augurproject/core';
-import { LogFilterAggregatorInterface } from '@augurproject/sdk/build/state/logs/LogFilterAggregator';
-import { Log, ParsedLog } from '@augurproject/types';
-import { WSClient } from '@0x/mesh-rpc-client';
-import { ContractAPI } from "../libs/contract-api";
-import { Account, NULL_ADDRESS } from "../constants";
-import { providers } from "ethers";
-import { Connectors, Events, SubscriptionEventName } from "@augurproject/sdk";
-import { API } from "@augurproject/sdk/build/state/getter/API";
-import { DB } from "@augurproject/sdk/build/state/db/DB";
-import { EmptyConnector } from "@augurproject/sdk";
-import { BaseConnector } from "@augurproject/sdk/build/connector";
-import { configureDexieForNode } from "@augurproject/sdk/build/state/utils/DexieIDBShim";
-import { formatBytes32String } from "ethers/utils";
 import { EthersProvider } from '@augurproject/ethersjs-provider';
-import { Connectors, createClient, Events, SDKConfiguration, startServerFromClient, SubscriptionEventName } from "@augurproject/sdk";
-import { BlockAndLogStreamerListenerInterface } from "@augurproject/sdk/build/state/db/BlockAndLogStreamerListener";
-import { DB } from "@augurproject/sdk/build/state/db/DB";
-import { API } from "@augurproject/sdk/build/state/getter/API";
-import { configureDexieForNode } from "@augurproject/sdk/build/state/utils/DexieIDBShim";
+import {
+  Connectors,
+  createClient,
+  Events,
+  SDKConfiguration,
+  SubscriptionEventName,
+} from '@augurproject/sdk';
+import { DB } from '@augurproject/sdk/build/state/db/DB';
+import { API } from '@augurproject/sdk/build/state/getter/API';
+import { LogFilterAggregatorInterface } from '@augurproject/sdk/build/state/logs/LogFilterAggregator';
+import { configureDexieForNode } from '@augurproject/sdk/build/state/utils/DexieIDBShim';
 import { BigNumber } from 'bignumber.js';
-import { providers } from "ethers";
-import { Account } from "../constants";
-import { makeSigner } from "../libs/blockchain";
-import { ContractAPI } from "../libs/contract-api";
+import { providers } from 'ethers';
+import { Account } from '../constants';
+import { makeSigner } from '../libs/blockchain';
+import { ContractAPI } from '../libs/contract-api';
 
 configureDexieForNode(true);
 
@@ -38,6 +31,7 @@ export interface FlashOption {
 export interface FlashArguments {
   [name: string]: string | boolean;
 }
+
 
 export interface FlashScript {
   name: string;
@@ -283,11 +277,10 @@ export class FlashSession {
     getEventContractAddress: () => {},
     } as unknown) as LogFilterAggregatorInterface;
 
-    return await DB.createAndInitializeDB(
+    return DB.createAndInitializeDB(
       Number(this.user.augur.networkId),
       logFilterAggregator,
       this.user.augur,
-      listener,
       true
     );
   }

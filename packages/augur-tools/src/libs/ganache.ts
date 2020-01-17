@@ -141,7 +141,7 @@ export async function writeSeedFile(seed: SeedFile, filePath: string): Promise<v
   await fs.writeFile(path.resolve(filePath), JSON.stringify(seed));
 }
 
-export async function loadSeedFile(seedFilePath: string, seedToLoad = 'base'): Promise<Seed> {
+export async function loadSeedFile(seedFilePath: string, seedToLoad = 'default'): Promise<Seed> {
   const {contractsHash, addresses, seeds}:SeedFile = JSON.parse(await fs.readFile(seedFilePath));
 
   return {

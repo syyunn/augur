@@ -118,7 +118,7 @@ export function addGanacheScripts(flash: FlashSession) {
           addresses: seed.addresses,
           contractsHash: seed.contractsHash,
           seeds: {
-            'base': seed.data,
+            'default': seed.data,
             WarpSync
           }
         }, filepath);
@@ -174,7 +174,7 @@ export function addGanacheScripts(flash: FlashSession) {
       const name = args.name as string || 'default';
       const seedFilePath = args.filepath as string || defaultSeedPath;
 
-      this.seeds[name] = await loadSeedFile(seedFilePath);
+      this.seeds[name] = await loadSeedFile(seedFilePath, name);
 
       if (args.use as boolean) {
         await this.call('use-seed', { seed: name, write_artifacts:  args.writeArtifacts as boolean });

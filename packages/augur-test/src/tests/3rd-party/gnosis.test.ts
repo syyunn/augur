@@ -1,17 +1,30 @@
-import { ContractAPI, ACCOUNTS } from '@augurproject/tools';
-import { BigNumber } from 'bignumber.js';
-import { makeDbMock } from '../../libs';
-import { DB } from '@augurproject/sdk/build/state/db/DB';
-import { Connectors } from '@augurproject/sdk';
-import { API } from '@augurproject/sdk/build/state/getter/API';
-import { NULL_ADDRESS, stringTo32ByteHex } from '@augurproject/tools/build/libs/Utils';
+import {
+  Addresses,
+  ContractAddresses,
+  NetworkId,
+} from '@augurproject/artifacts';
 import { sleep } from '@augurproject/core/build/libraries/HelperFunctions';
-import * as _ from 'lodash';
 import { EthersProvider } from '@augurproject/ethersjs-provider';
+import {
+  GnosisRelayAPI,
+  GnosisSafeState,
+} from '@augurproject/gnosis-relay-api';
+import { Connectors } from '@augurproject/sdk';
+import { DB } from '@augurproject/sdk/build/state/db/DB';
+import { API } from '@augurproject/sdk/build/state/getter/API';
+import {
+  AllOrders,
+  Order,
+} from '@augurproject/sdk/build/state/getter/OnChainTrading';
+import { ACCOUNTS, ContractAPI } from '@augurproject/tools';
+import {
+  NULL_ADDRESS,
+  stringTo32ByteHex,
+} from '@augurproject/tools/build/libs/Utils';
+import { BigNumber } from 'bignumber.js';
 import { JsonRpcProvider } from 'ethers/providers';
-import { Addresses, ContractAddresses, NetworkId } from '@augurproject/artifacts';
-import { GnosisRelayAPI, GnosisSafeState } from '@augurproject/gnosis-relay-api';
-import { AllOrders, Order } from '@augurproject/sdk/build/state/getter/OnChainTrading';
+import * as _ from 'lodash';
+import { makeDbMock } from '../../libs';
 
 async function getSafe(person: ContractAPI): Promise<string> {
   return person.augur.contracts.gnosisSafeRegistry.getSafe_(person.account.publicKey);

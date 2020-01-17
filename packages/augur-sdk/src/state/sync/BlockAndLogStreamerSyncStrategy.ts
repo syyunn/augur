@@ -47,7 +47,6 @@ type BlockCallback = (block: Block) => void;
 export interface BlockAndLogStreamerListenerInterface {
   listenForBlockRemoved(callback: (blockNumber: number) => void): void;
   listenForBlockAdded(callback: (block: Block) => void): void;
-  startBlockStreamListener(): void;
 }
 
 export class BlockAndLogStreamerSyncStrategy extends AbstractSyncStrategy
@@ -120,8 +119,6 @@ export class BlockAndLogStreamerSyncStrategy extends AbstractSyncStrategy
     this.listenForNewBlocks(this.onNewBlock);
     return 0;
   }
-
-  startBlockStreamListener(): void {}
 
   onNewBlock = async (block: Block) => {
     if (block) {
