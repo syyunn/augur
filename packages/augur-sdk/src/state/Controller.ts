@@ -4,25 +4,29 @@ import * as fp from 'lodash/fp';
 import { Augur } from '../Augur';
 import { SubscriptionEventName } from '../constants';
 import { Subscriptions } from '../subscriptions';
-import { BlockAndLogStreamerListenerInterface } from './db/BlockAndLogStreamerListener';
 import { DB } from './db/DB';
 import { Markets } from './getter/Markets';
-import { WarpController } from '../warp/WarpController';
+import { LogFilterAggregatorInterface } from './logs/LogFilterAggregator';
+import { AbstractSyncStrategy } from './sync/AbstractSyncStrategy';
 
 const settings = require('./settings.json');
 
 export class Controller {
   private static latestBlock: Block;
-  private static throttled: any;
 
   private readonly events;
 
   constructor(
     private augur: Augur,
     private db: Promise<DB>,
-    private blockAndLogStreamerListener: BlockAndLogStreamerListenerInterface
+    private logFilterAggregator: LogFilterAggregatorInterface,
   ) {
     this.events = new Subscriptions(augur.events);
+    this.logFilterAggregator.listenForAllEvents(this.updateMarketsData);
+    this.logFilterAggregator.notifyNewBlockAfterLogsProcess(this.notifyNewBlockEvent.bind(this));
+    // this.logFilterAggregator.listenForBlockRemoved(
+    //   db.rollback.bind(db)
+    // );
   }
 
   async run(): Promise<void> {

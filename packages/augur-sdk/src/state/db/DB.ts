@@ -1,12 +1,16 @@
 import { Augur } from '../../Augur';
 import { SubscriptionEventName } from '../../constants';
 import Dexie from 'dexie';
+import {
+  LogCallbackType,
+  LogFilterAggregatorInterface,
+} from '../logs/LogFilterAggregator';
 import { SyncableDB } from './SyncableDB';
 import { SyncStatus } from './SyncStatus';
 import { DisputeDatabase } from './DisputeDB';
 import { CurrentOrdersDatabase } from './CurrentOrdersDB';
 import { MarketDB } from './MarketDB';
-import { BlockAndLogStreamerListenerInterface, LogCallbackType } from './BlockAndLogStreamerListener';
+import { BlockAndLogStreamerListenerInterface} from '../sync/BlockAndLogStreamerSyncStrategy';
 import {
   CompleteSetsPurchasedLog,
   CompleteSetsSoldLog,
@@ -68,9 +72,6 @@ export class DB {
   private marketDatabase: MarketDB;
   private cancelledOrdersDatabase: CancelledOrdersDB;
   private zeroXOrders: ZeroXOrders;
-  private blockAndLogStreamerListener: BlockAndLogStreamerListenerInterface;
-  private augur: Augur;
-  readonly dexieDB: Dexie;
   syncStatus: SyncStatus;
 
   readonly genericEventDBDescriptions: GenericEventDBDescription[] = [
@@ -108,31 +109,22 @@ export class DB {
     { EventName: 'ShareTokenBalanceChanged', indexes: ['[universe+account]'], primaryKey: '[account+market+outcome]'},
   ];
 
-  constructor(dexieDB: Dexie) {
-    this.dexieDB = dexieDB;
-  }
+  constructor(readonly dexieDB: Dexie, readonly logFilters: LogFilterAggregatorInterface, private augur:Augur) {}
 
   /**
    * Creates and returns a new dbController.
    *
    * @param {number} networkId Network on which to sync events
-   * @param {number} blockstreamDelay Number of blocks by which to delay blockstream
-   * @param {number} defaultStartSyncBlockNumber Block number at which to start sycing (if no higher block number has been synced)
-   * @param {Array<string>} trackedUsers Array of user addresses for which to sync user-specific events
-   * @param {Array<string>} genericEventNames Array of names for generic event types
-   * @param {Array<DerivedDBConfiguration>} derivedDBConfigurations Array of custom event objects
-   * @param {Array<UserSpecificDBConfiguration>} userSpecificDBConfiguration Array of user-specific event objects
-   * @param {TableFactoryType} TableFactory Factory function generatin PouchDB instance
-   * @param {BlockAndLogStreamerListenerInterface} blockAndLogStreamerListener Stream listener for blocks and logs
+   * @param {LogFilterAggregatorInterface} object responsible for routing logs to individual db tables.
    * @returns {Promise<DB>} Promise to a DB controller object
    */
-  static createAndInitializeDB(networkId: number, blockstreamDelay: number, defaultStartSyncBlockNumber: number, augur: Augur, blockAndLogStreamerListener: BlockAndLogStreamerListenerInterface, enableZeroX: boolean=false): Promise<DB> {
+  static createAndInitializeDB(networkId: number, logFilterAggregator:LogFilterAggregatorInterface, augur: Augur, enableZeroX: boolean=false): Promise<DB> {
     const dbName = `augur-${networkId}`;
-    const dbController = new DB(new Dexie(dbName));
+    const dbController = new DB(new Dexie(dbName), logFilterAggregator, augur);
 
     dbController.augur = augur;
 
-    return dbController.initializeDB(networkId, blockstreamDelay, defaultStartSyncBlockNumber, blockAndLogStreamerListener, enableZeroX);
+    return dbController.initializeDB(networkId, enableZeroX);
   }
 
   /**
@@ -147,18 +139,15 @@ export class DB {
    * @param blockAndLogStreamerListener
    * @return {Promise<void>}
    */
-  async initializeDB(networkId: number, blockstreamDelay: number, defaultStartSyncBlockNumber: number, blockAndLogStreamerListener: BlockAndLogStreamerListenerInterface, enableZeroX: boolean): Promise<DB> {
+  async initializeDB(networkId: number, enableZeroX: boolean): Promise<DB> {
     this.networkId = networkId;
-    this.blockstreamDelay = blockstreamDelay;
-    this.blockAndLogStreamerListener = blockAndLogStreamerListener;
-
     const schemas = this.generateSchemas();
 
     this.dexieDB.version(1).stores(schemas);
 
     await this.dexieDB.open();
 
-    this.syncStatus = new SyncStatus(networkId, defaultStartSyncBlockNumber, this);
+    this.syncStatus = new SyncStatus(networkId, 0, this);
 
     // Create SyncableDBs for generic event types & UserSyncableDBs for user-specific event types
     for (const genericEventDBDescription of this.genericEventDBDescriptions) {
@@ -214,7 +203,7 @@ export class DB {
   }
 
   registerEventListener(eventNames: string | string[], callback: LogCallbackType): void {
-    this.blockAndLogStreamerListener.listenForEvent(eventNames, callback);
+    this.logFilters.listenForEvent(eventNames, callback);
   }
 
   /**
@@ -254,7 +243,7 @@ export class DB {
     await this.marketDatabase.sync(highestAvailableBlockNumber);
     console.log('Syncing Complete - SDK Ready');
     this.augur.events.emit(SubscriptionEventName.SDKReady, {
-      eventName: SubscriptionEventName.SDKReady,
+        eventName: SubscriptionEventName.SDKReady,
     });
   }
 

@@ -4,6 +4,9 @@ import { SDKConfiguration, startServer } from "./create-api";
 import { EndpointSettings } from "./getter/types";
 import * as HTTPEndpoint from "./HTTPEndpoint";
 import * as WebsocketEndpoint from "./WebsocketEndpoint";
+import { EndpointSettings } from "./getter/types";
+import { EventEmitter } from "events";
+
 import { configureDexieForNode } from "@augurproject/sdk/build/state/utils/DexieIDBShim";
 configureDexieForNode(false);
 
@@ -13,7 +16,7 @@ export async function run() {
   const config: SDKConfiguration = {
     networkId: NetworkId.Kovan,
     ethereum: {
-      http: settings.ethNodeURLs[4],
+      http: settings.ethNodeURLs[42],
       rpcRetryCount: 5,
       rpcRetryInterval: 0,
       rpcConcurrency: 40

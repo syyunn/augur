@@ -1,3 +1,6 @@
+import { Augur } from '../Augur';
+import { LogFilterAggregator } from './logs/LogFilterAggregator';
+import { BlockAndLogStreamerSyncStrategy } from './sync/BlockAndLogStreamerSyncStrategy';
 import { ContractAddresses, getStartingBlockForNetwork, NetworkId, getAddressesForNetwork } from '@augurproject/artifacts';
 import { EthersProvider } from '@augurproject/ethersjs-provider';
 import { EthersSigner } from 'contract-dependencies-ethers';
@@ -10,6 +13,8 @@ import { BaseConnector, EmptyConnector } from '../connector';
 import { Controller } from './Controller';
 import { BlockAndLogStreamerListener } from './db/BlockAndLogStreamerListener';
 import { DB } from './db/DB';
+import { GnosisRelayAPI } from '@augurproject/gnosis-relay-api';
+import { BulkSyncStrategy } from './sync/BulkSyncStrategy';
 import { API } from './getter/API';
 
 export interface SDKConfiguration {
@@ -91,6 +96,7 @@ export async function createClient(
     zeroX,
     enableFlexSearch
   );
+    const uploadBlockNumber = UploadBlockNumbers[networkId];
 
   return client;
 }
@@ -125,24 +131,43 @@ export async function createServer(config: SDKConfiguration, client?: Augur, acc
     client.addresses.ShareToken,
     client.addresses.Exchange
   );
-  const blockAndLogStreamerListener = BlockAndLogStreamerListener.create(
-    ethersProvider,
+
+  const logFilterAggregator = LogFilterAggregator.create(
     contractEvents.getEventTopics,
     contractEvents.parseLogs,
     contractEvents.getEventContractAddress
   );
+
   const db = DB.createAndInitializeDB(
     Number(config.networkId),
-    config.syncing.blockstreamDelay,
-    getStartingBlockForNetwork(config.networkId),
+    logFilterAggregator,
     client,
-    blockAndLogStreamerListener,
     config.zeroX && (config.zeroX.mesh && config.zeroX.mesh.enabled || config.zeroX.rpc && config.zeroX.rpc.enabled)
   );
+
+    return { augur, ethersProvider, logFilterAggregator, db };
+  }catch(e) {
+    console.log('Error initializing api', e)
+  }
+  return null;
+}
+
+export async function create(ethNodeUrl: string, account?: string, enableFlexSearch = false): Promise<{ api: API, controller: Controller, blockAndLogStreamerSyncStrategy:BlockAndLogStreamerSyncStrategy, bulkSyncStrategy: BulkSyncStrategy, logFilterAggregator: LogFilterAggregator }> {
+  const { augur, ethersProvider, logFilterAggregator, db } = await buildDeps(ethNodeUrl, account, enableFlexSearch);
+
+  const bulkSyncStrategy = new BulkSyncStrategy(ethersProvider.getLogs, logFilterAggregator.buildFilter, logFilterAggregator.onLogsAdded, augur.contractEvents.parseLogs);
+
+  const blockAndLogStreamerSyncStrategy = BlockAndLogStreamerSyncStrategy.create(
+    ethersProvider,
+    logFilterAggregator
+  );
+
+  const controller = new Controller(augur, db, logFilterAggregator);
+  const api = new API(augur, db);
   const controller = new Controller(client, db, blockAndLogStreamerListener);
   const api = new API(client, db);
 
-  return { api, controller };
+  return { api, controller, blockAndLogStreamerSyncStrategy, bulkSyncStrategy, logFilterAggregator};
 }
 
 export async function startServerFromClient(config: SDKConfiguration, client?: Augur ): Promise<API> {
