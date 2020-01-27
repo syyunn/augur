@@ -23,4 +23,5 @@ tsconfig-local.json
 
 package-lock.json
 temp*.file
-packages/augur-test/data
+data/
+*.sqlite
