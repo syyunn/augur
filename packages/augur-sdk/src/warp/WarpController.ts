@@ -135,7 +135,7 @@ export class WarpController {
     });
 
     topLevelDirectory.addLink(
-      await this.buildDirectory('accounts', await this.createAccountRollups())
+      await this.buildDirectory('accounts', await this.createAccountRollups(begin.number, end.number))
     );
 
     topLevelDirectory.addLink(
@@ -324,7 +324,12 @@ export class WarpController {
       ({ market }) => market
     );
 
-    const results = await this.createRollup(dbNamesToSync, result);
+    const results = await this.createRollup(
+      dbNamesToSync,
+      result,
+      startBlockNumber,
+      endBlockNumber
+    );
     return results[1];
   }
 
