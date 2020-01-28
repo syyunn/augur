@@ -404,6 +404,10 @@ export class WarpController {
         databaseName: 'TransferSingle',
         indexes: ['from', 'to'],
       },
+      {
+        databaseName: 'ShareTokenBalanceChanged',
+        indexes: ['account'],
+      },
     ];
 
     // @todo figure out if this is the best way to find all accounts.

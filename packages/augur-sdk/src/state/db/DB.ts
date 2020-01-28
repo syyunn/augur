@@ -108,7 +108,7 @@ export class DB {
     { EventName: 'UniverseForked', indexes: ['universe'] },
     { EventName: 'TransferSingle', indexes: ['to', 'from']},
     { EventName: 'TransferBatch', indexes: ['to', 'from']},
-    { EventName: 'ShareTokenBalanceChanged', indexes: ['[universe+account]'], primaryKey: '[account+market+outcome]'},
+    { EventName: 'ShareTokenBalanceChanged', indexes: ['[universe+account]', 'account'], primaryKey: '[account+market+outcome]'},
   ];
 
   constructor(readonly dexieDB: Dexie, readonly logFilters: LogFilterAggregatorInterface, private augur:Augur) {}
