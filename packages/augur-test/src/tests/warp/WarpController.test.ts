@@ -423,10 +423,6 @@ describe('WarpController', () => {
       test('should populate market data', async () => {
         // populate db.
         await warpSyncStrategy.start(secondCheckpointFileHash);
-
-        const johnMarketList = await johnApi.route('getMarkets', {
-          universe: addresses.Universe,
-        });
       });
     });
 
@@ -456,7 +452,17 @@ describe('WarpController', () => {
           secondCheckpointFileHash
         );
 
-        // Sanity check.
+        const bulkSyncStrategy = new BulkSyncStrategy(
+          provider.getLogs,
+          newJohnDB.logFilters.buildFilter,
+          newJohnDB.logFilters.onLogsAdded,
+          newJohn.augur.contractEvents.parseLogs,
+          50
+        );
+
+        // Pickup the rest of the logs.
+        await bulkSyncStrategy.start(blockNumber, newBlockHeaders.number);
+
         await expect(
           newJohnApi.route('getMarkets', {
             universe: addresses.Universe,
