@@ -2,7 +2,7 @@ import React, { Component } from "react";
 import classNames from "classnames";
 
 import ModulePane from "modules/market/components/common/module-tabs/module-pane";
-import Styles from "modules/market/components/common/module-tabs/module-tabs.style.less";
+import Styles from "modules/market/components/common/module-tabs/module-tabs.style";
 import { ToggleExtendButton } from "modules/common/buttons";
 
 interface ModuleTabsProps {
@@ -19,12 +19,7 @@ interface ModuleTabsProps {
   toggle?: Function;
 }
 
-interface ModuleTabsState {
-  selected?: number,
-  scrolling: boolean;
-}
-
-export default class ModuleTabs extends Component<ModuleTabsProps, ModuleTabsState> {
+export default class ModuleTabs extends Component<ModuleTabsProps> {
   static defaultProps = {
     selected: 0,
     className: "",
@@ -35,7 +30,6 @@ export default class ModuleTabs extends Component<ModuleTabsProps, ModuleTabsSta
     leftButton: null,
     scrollOver: false
   };
-  prevOffset: number = 0;
 
   constructor(props) {
     super(props);
@@ -45,6 +39,7 @@ export default class ModuleTabs extends Component<ModuleTabsProps, ModuleTabsSta
       scrolling: false
     };
 
+    this.prevOffset = 0;
     this.handleClick = this.handleClick.bind(this);
     this.renderTabs = this.renderTabs.bind(this);
     this.renderContent = this.renderContent.bind(this);
@@ -62,7 +57,7 @@ export default class ModuleTabs extends Component<ModuleTabsProps, ModuleTabsSta
       window.onscroll = () => {
         // sometimes offset is 1 on mount
         const currOffset = (window.pageYOffset - 1);
-        let scrolling = false;
+        const scrolling = false;
         if (this.prevOffset < currOffset) {
           scrolling = true;
         } else {
@@ -87,28 +82,27 @@ export default class ModuleTabs extends Component<ModuleTabsProps, ModuleTabsSta
   }
 
   renderTabs() {
-    const that = this;
     function labels(child, index) {
       return (
         <li
           key={index}
           className={classNames({
-            [Styles.ActiveTab]: that.state.selected === index,
+            [Styles.ActiveTab]: this.state.selected === index,
             [Styles.ActiveTabFill]:
-            that.state.selected === index && that.props.fillWidth
+              this.state.selected === index && this.props.fillWidth
           })}
         >
           <button
             onClick={e => {
-              that.handleClick(e, index, child.props.onClickCallback);
+              this.handleClick(e, index, child.props.onClickCallback);
             }}
           >
             <span
               className={classNames({
                 [Styles.ActiveSpanFill]:
-                  that.state.selected === index && that.props.fillWidth,
+                  this.state.selected === index && this.props.fillWidth,
                 [Styles.ActiveNoBorder]:
-                  that.state.selected === index && that.props.noBorder,
+                  this.state.selected === index && this.props.noBorder,
                 [Styles.IsNew]: child.props && child.props.isNew,
               })}
             >

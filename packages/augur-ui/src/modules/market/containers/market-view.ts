@@ -38,17 +38,16 @@ import {
   getMarketAgeInDays,
   convertUnixToFormattedDate,
 } from 'utils/format-date';
-import { AppState } from 'store';
 
-const mapStateToProps = (state: AppState, ownProps) => {
-  const { connection, universe, modal, loginAccount } = state;
+const mapStateToProps = (state, ownProps) => {
+  const { connection, universe, modal } = state;
   const marketId = parseQuery(ownProps.location.search)[MARKET_ID_PARAM_NAME];
   const queryOutcomeId = parseQuery(ownProps.location.search)[
     OUTCOME_ID_PARAM_NAME
   ];
   const outcomeId = queryOutcomeId ? parseInt(queryOutcomeId) : null;
 
-  let market = null;
+  let market = {};
   const tradingTutorial = marketId === TRADING_TUTORIAL;
   if (tradingTutorial) {
     // TODO move trading tutorial market state to constants
@@ -103,7 +102,7 @@ const mapStateToProps = (state: AppState, ownProps) => {
 
   return {
     daysPassed,
-    preview: tradingTutorial || ownProps.preview,
+    preview: tradingTutorial,
     tradingTutorial,
     currentTimestamp: selectCurrentTimestampInSeconds(state),
     outcomes: market.outcomes || [],
@@ -120,8 +119,6 @@ const mapStateToProps = (state: AppState, ownProps) => {
       market.marketType,
       market.outcomesFormatted
     ),
-    account: loginAccount.address,
-    orderBook: tradingTutorial && TUTORIAL_ORDER_BOOK || ownProps.orderBook,
   };
 };
 

@@ -78,6 +78,7 @@ import {
 import {
   buildformattedDate,
   convertUnixToFormattedDate,
+  getUnixDateTimeFromComponents,
 } from 'utils/format-date';
 import TemplatePicker from 'modules/create-market/containers/template-picker';
 
@@ -109,6 +110,7 @@ import {
   TemplateInput,
   getTemplateWednesdayAfterOpeningDay,
 } from '@augurproject/artifacts';
+import { template } from './form-details.styles.less';
 
 interface FormProps {
   newMarket: NewMarket;
@@ -840,7 +842,6 @@ export default class Form extends React.Component<FormProps, FormState> {
                     : newMarket.detailsText,
                 }}
                 preview
-                orderBook={newMarket.orderBook}
               />
             </span>
             <PrimaryButton text="Close preview" action={this.preview} />

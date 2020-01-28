@@ -20,7 +20,6 @@ const mapStateToProps = (state: AppState, ownProps: any) => {
     daysPassed,
     minPrice: market.minPriceBigNumber || ZERO,
     maxPrice: market.maxPriceBigNumber || ZERO,
-    orderBook: ownProps.orderBook,
   };
 };
 
