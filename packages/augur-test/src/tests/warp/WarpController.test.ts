@@ -13,6 +13,7 @@ import {
   makeDependencies,
   makeSigner,
 } from '@augurproject/tools';
+import { Seed } from '@augurproject/tools/build';
 import { TestEthersProvider } from '@augurproject/tools/build/libs/TestEthersProvider';
 import { BigNumber } from 'bignumber.js';
 import { ContractDependenciesEthers } from 'contract-dependencies-ethers';
@@ -39,6 +40,7 @@ describe('WarpController', () => {
   let uploadBlockHeaders: Block;
   let firstCheckpointBlockHeaders: Block;
   let newBlockHeaders: Block;
+  let seed: Seed;
 
   beforeAll(async () => {
     configureDexieForNode(true);
@@ -46,7 +48,7 @@ describe('WarpController', () => {
       repo: './data',
     });
 
-    const seed = await loadSeedFile(defaultSeedPath, 'WarpSync');
+    seed = await loadSeedFile(defaultSeedPath, 'WarpSync');
 
     provider = await makeProvider(seed, ACCOUNTS);
     networkId = await provider.getNetworkId();
@@ -57,12 +59,14 @@ describe('WarpController', () => {
     uploadBlockHeaders = await provider.getBlock(0);
     firstCheckpointBlockHeaders = await provider.getBlock(170);
     newBlockHeaders = await provider.getBlock('latest');
+  });
 
+  beforeEach(async () => {
     john = await ContractAPI.userWrapper(ACCOUNTS[0], provider, seed.addresses);
     newJohn = await ContractAPI.userWrapper(
       ACCOUNTS[0],
       provider,
-      seed.addresses
+      seed.addresses,
     );
 
     db = await mock.makeDB(john.augur, ACCOUNTS);
@@ -72,7 +76,7 @@ describe('WarpController', () => {
       db.logFilters.buildFilter,
       db.logFilters.onLogsAdded,
       john.augur.contractEvents.parseLogs,
-      50
+      50,
     );
 
     // partially populate db.
@@ -82,17 +86,17 @@ describe('WarpController', () => {
     // really be a problem that we are grabbing extra blocks.
     warpController = new WarpController(db, ipfs, provider, uploadBlockHeaders);
     firstCheckpointFileHash = await warpController.createAllCheckpoints(
-      await provider.getBlock(170)
+      await provider.getBlock(170),
     );
 
     await bulkSyncStrategy.start(171, await provider.getBlockNumber());
 
     secondCheckpointFileHash = await warpController.createAllCheckpoints(
-      newBlockHeaders
+      newBlockHeaders,
     );
 
     allMarketIds = (await db.MarketCreated.toArray()).map(
-      market => market.market
+      market => market.market,
     );
   });
 
@@ -101,6 +105,15 @@ describe('WarpController', () => {
   });
 
   describe('queryDB', () => {
+    test('limit blocks in query', async () => {
+      const result = await warpController.queryDB('TransferSingle',
+        ['to', 'from'], john.account.publicKey, 0, 175);
+      expect(result).not.toEqual(expect.arrayContaining([
+        expect.objectContaining({
+          blockNumber: '176',
+        })]));
+    });
+
     test('filter by block range', async () => {
       await expect(
         warpController.queryDB(
@@ -108,8 +121,8 @@ describe('WarpController', () => {
           [],
           '',
           uploadBlockHeaders.number,
-          newBlockHeaders.number
-        )
+          newBlockHeaders.number,
+        ),
       ).resolves.toHaveLength(5);
     });
   });
@@ -117,7 +130,7 @@ describe('WarpController', () => {
   describe('getCheckpointBlockRange', () => {
     test('should return the range', async () => {
       await expect(
-        db.warpCheckpoints.getCheckpointBlockRange()
+        db.warpCheckpoints.getCheckpointBlockRange(),
       ).resolves.toEqual([
         expect.objectContaining({
           number: 0,
@@ -135,20 +148,19 @@ describe('WarpController', () => {
       const targetEndNumber = 158;
       const hash = await warpController.createCheckpoint(
         await provider.getBlock(targetBeginNumber),
-        await provider.getBlock(targetEndNumber)
+        await provider.getBlock(targetEndNumber),
       );
-      const result = (await ipfs.cat(`${hash.Hash}`))
-        .toString()
-        .split('\n')
-        .filter(log => log)
-        .map(log => {
+      const result = (await ipfs.cat(`${hash.Hash}`)).toString().
+        split('\n').
+        filter(log => log).
+        map(log => {
           try {
             return JSON.parse(log);
           } catch (e) {
             console.error(e, log);
           }
-        })
-        .map(item => item.blockNumber);
+        }).
+        map(item => item.blockNumber);
 
       expect(Math.min(...result)).toEqual(targetBeginNumber);
       expect(Math.max(...result)).toEqual(targetEndNumber);
@@ -158,7 +170,7 @@ describe('WarpController', () => {
   describe('getAvailableCheckpointsByHash method', () => {
     test('return array of checkpoints available', async () => {
       await expect(
-        warpController.getAvailableCheckpointsByHash(secondCheckpointFileHash)
+        warpController.getAvailableCheckpointsByHash(secondCheckpointFileHash),
       ).resolves.toEqual([0, 166, 174]);
     });
   });
@@ -167,7 +179,7 @@ describe('WarpController', () => {
     test('Create checkpoint db records', async () => {
       console.log(
         'db.warpCheckpoints.table.toArray()',
-        await db.warpCheckpoints.table.toArray()
+        await db.warpCheckpoints.table.toArray(),
       );
       await expect(db.warpCheckpoints.table.toArray()).resolves.toEqual([
         expect.objectContaining({
@@ -217,7 +229,7 @@ describe('WarpController', () => {
 
     test('should create initial checkpoints', async () => {
       await expect(
-        ipfs.ls(`${secondCheckpointFileHash}/checkpoints/`)
+        ipfs.ls(`${secondCheckpointFileHash}/checkpoints/`),
       ).resolves.toEqual([
         expect.objectContaining({
           name: '0',
@@ -230,13 +242,26 @@ describe('WarpController', () => {
         }),
       ]);
     });
+
+    test('getCheckpointBlockRange', async () => {
+      await expect(db.warpCheckpoints.getCheckpointBlockRange()).
+        resolves.
+        toEqual([
+          expect.objectContaining({
+            number: 0,
+          }),
+          expect.objectContaining({
+            number: 175,
+          }),
+        ]);
+    });
   });
 
   describe('structure', () => {
     describe('top-level directory', () => {
       test('should have a version file with the version number', async () => {
         await expect(
-          ipfs.cat(`${secondCheckpointFileHash}/VERSION`)
+          ipfs.cat(`${secondCheckpointFileHash}/VERSION`),
         ).resolves.toEqual(Buffer.from('1'));
       });
 
@@ -279,7 +304,7 @@ describe('WarpController', () => {
           });
 
           await expect(
-            ipfs.ls(`${secondCheckpointFileHash}/markets`)
+            ipfs.ls(`${secondCheckpointFileHash}/markets`),
           ).resolves.toEqual(
             expect.arrayContaining([
               ...allMarkets,
@@ -287,31 +312,31 @@ describe('WarpController', () => {
                 name: 'index',
                 type: 'file',
               }),
-            ])
+            ]),
           );
         });
 
         test('market file should have contents', async () => {
-          const result = await ipfs.cat(`${secondCheckpointFileHash}/markets/${allMarketIds[0]}`);
+          const result = await ipfs.cat(
+            `${secondCheckpointFileHash}/markets/${allMarketIds[0]}`,
+          );
 
-          expect(
-            result.toString()
-          ).not.toEqual('');
+          expect(result.toString()).not.toEqual('');
         });
 
         test('index file should have contents', async () => {
-          const result = await ipfs.cat(`${secondCheckpointFileHash}/markets/index`);
+          const result = await ipfs.cat(
+            `${secondCheckpointFileHash}/markets/index`,
+          );
 
-          expect(
-            result.toString()
-          ).not.toEqual('');
+          expect(result.toString()).not.toEqual('');
         });
       });
 
       describe('account rollups', () => {
         test('should create files for each account', async () => {
           await expect(
-            ipfs.ls(`${secondCheckpointFileHash}/accounts/`)
+            ipfs.ls(`${secondCheckpointFileHash}/accounts/`),
           ).resolves.toEqual(
             expect.arrayContaining([
               expect.objectContaining({
@@ -322,7 +347,7 @@ describe('WarpController', () => {
                 name: 'index',
                 type: 'file',
               }),
-            ])
+            ]),
           );
         });
       });
@@ -333,13 +358,12 @@ describe('WarpController', () => {
     // This is a spot check.
     test('should have some logs', async () => {
       const marketCreated = await ipfs.cat(
-        `${secondCheckpointFileHash}/tables/MarketCreated/index`
+        `${secondCheckpointFileHash}/tables/MarketCreated/index`,
       );
-      const splitLogs = marketCreated
-        .toString()
-        .split('\n')
-        .filter(log => log)
-        .map(log => {
+      const splitLogs = marketCreated.toString().
+        split('\n').
+        filter(log => log).
+        map(log => {
           try {
             return JSON.parse(log);
           } catch (e) {
@@ -366,23 +390,26 @@ describe('WarpController', () => {
         newJohnDB,
         ipfs,
         provider,
-        uploadBlockHeaders
+        uploadBlockHeaders,
       );
       newJohnApi = new API(newJohn.augur, Promise.resolve(newJohnDB));
 
       warpSyncStrategy = new WarpSyncStrategy(
         newJohnWarpController,
-        newJohnDB.logFilters.onLogsAdded
+        newJohnDB.logFilters.onLogsAdded,
       );
     });
 
     describe('partial sync', () => {
       test('should load specific market data', async () => {
         const marketId = allMarketIds[3];
-        await expect(
-          warpSyncStrategy.syncMarket(secondCheckpointFileHash, marketId)
-        ).resolves.toBeGreaterThan(0);
+        const blockNumber = await warpSyncStrategy.syncMarket(
+          secondCheckpointFileHash,
+          marketId,
+        );
+        expect(blockNumber).toEqual(175);
 
+        await db.rollback(blockNumber);
         const johnMarketList = await johnApi.route('getMarketsInfo', {
           marketIds: [marketId],
         });
@@ -393,29 +420,31 @@ describe('WarpController', () => {
 
         expect(newJohnMarketList).toEqual(johnMarketList);
       });
+
       test('should load specific user data', async () => {
         const marketId = allMarketIds[3];
 
         await warpSyncStrategy.syncMarket(secondCheckpointFileHash, marketId);
-        await warpSyncStrategy.syncAccount(
+        const blockNumber = await warpSyncStrategy.syncAccount(
           secondCheckpointFileHash,
-          newJohn.account.publicKey
+          newJohn.account.publicKey,
         );
 
+        expect(blockNumber).toEqual(175);
+
+        // Rollback to avoid having to deal with data newer than the warp sync.
+        await db.rollback(blockNumber);
         const johnUserAccountData = await johnApi.route('getUserAccountData', {
           universe: addresses.Universe,
           account: john.account.publicKey,
         });
 
-        const newJohnUserAccountData = await newJohnApi.route(
-          'getUserAccountData',
-          {
+        await expect(
+          newJohnApi.route('getUserAccountData', {
             universe: addresses.Universe,
             account: newJohn.account.publicKey,
-          }
-        );
-
-        expect(newJohnUserAccountData).toEqual(johnUserAccountData);
+          }),
+        ).resolves.toEqual(johnUserAccountData);
       });
     });
 
@@ -433,7 +462,7 @@ describe('WarpController', () => {
 
         // This should populate the checkpoints DB.
         await newJohnWarpController.createAllCheckpoints(
-          firstCheckpointBlockHeaders
+          firstCheckpointBlockHeaders,
         );
 
         const johnMarketList = await johnApi.route('getMarkets', {
@@ -444,49 +473,45 @@ describe('WarpController', () => {
         await expect(
           newJohnApi.route('getMarkets', {
             universe: addresses.Universe,
-          })
+          }),
         ).resolves.not.toEqual(johnMarketList);
 
         // populate db. Admittedly this just proves the logs were loaded.
         const blockNumber = await warpSyncStrategy.start(
-          secondCheckpointFileHash
+          secondCheckpointFileHash,
         );
 
-        const bulkSyncStrategy = new BulkSyncStrategy(
-          provider.getLogs,
-          newJohnDB.logFilters.buildFilter,
-          newJohnDB.logFilters.onLogsAdded,
-          newJohn.augur.contractEvents.parseLogs,
-          50
-        );
+        expect(blockNumber).toEqual(175);
 
-        // Pickup the rest of the logs.
-        await bulkSyncStrategy.start(blockNumber, newBlockHeaders.number);
+        await db.rollback(blockNumber - 1);
+        const rolledbackJohnMarketList = await johnApi.route('getMarkets', {
+          universe: addresses.Universe,
+        });
 
         await expect(
           newJohnApi.route('getMarkets', {
             universe: addresses.Universe,
-          })
-        ).resolves.toEqual(johnMarketList);
+          }),
+        ).resolves.toEqual(rolledbackJohnMarketList);
       });
     });
   });
   describe('pinning ui', () => {
     test.skip('valid hash', async () => {
       await warpController.pinHashByGatewayUrl(
-        'https://cloudflare-ipfs.com/ipfs/QmXnnyufdzAWL5CqZ2RnSNgPbvCc1ALT73s6epPrRnZ1Xy'
+        'https://cloudflare-ipfs.com/ipfs/QmXnnyufdzAWL5CqZ2RnSNgPbvCc1ALT73s6epPrRnZ1Xy',
       );
       await expect(ipfs.pin.ls()).resolves.toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             hash: 'QmXnnyufdzAWL5CqZ2RnSNgPbvCc1ALT73s6epPrRnZ1Xy',
           }),
-        ])
+        ]),
       );
     });
     test('invalid hash', async () => {
       await warpController.pinHashByGatewayUrl(
-        'https://cloudflare-ipfs.com/ipfs/QQakF4QZQ9CYciRmcYA56kisvnEFHZRThzKBAzF5MXw6zv'
+        'https://cloudflare-ipfs.com/ipfs/QQakF4QZQ9CYciRmcYA56kisvnEFHZRThzKBAzF5MXw6zv',
       );
       await expect(ipfs.pin.ls()).resolves.not.toEqual([
         expect.arrayContaining([

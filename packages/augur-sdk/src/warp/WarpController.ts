@@ -445,10 +445,21 @@ export class WarpController {
         return db.aboveOrEqual(0);
       })(this.db[dbName].where('blockNumber'))
     );
-    const logs = await query.toArray();
+    return query.toArray();
+  };
+
+  queryDBWithAddRow = async (
+    dbName: AllDBNames,
+    properties: string[] = [],
+    criteria: Address,
+    startBlockNumber = 0,
+    endBlockNumber?: number
+  ) => {
+    const logs = await this.queryDB(dbName, properties, criteria, startBlockNumber, endBlockNumber);
 
     return this.ipfsAddRows(logs);
-  };
+  }
+
 
   async createRollup(
     rollupDescriptions: RollupDescription,
@@ -462,7 +473,7 @@ export class WarpController {
         const items = _.flatten(
           await Promise.all(
             rollupDescriptions.map(r =>
-              this.queryDB(
+              this.queryDBWithAddRow(
                 r.databaseName,
                 r.indexes,
                 id,
