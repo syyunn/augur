@@ -436,15 +436,12 @@ export class WarpController {
     startBlockNumber = 0,
     endBlockNumber?: number
   ) => {
-    const query = properties.reduce(
-      (table, value) => table.or(value).equalsIgnoreCase(criteria),
-      (db => {
-        if (endBlockNumber) {
-          return db.between(startBlockNumber, endBlockNumber, true, true);
-        }
-        return db.aboveOrEqual(0);
-      })(this.db[dbName].where('blockNumber'))
+    const query = await this.db[dbName].where('blockNumber').between(startBlockNumber, endBlockNumber, true, true);
+
+    query.and((item) =>
+      properties.some((property) => item[property] === criteria)
     );
+
     return query.toArray();
   };
 

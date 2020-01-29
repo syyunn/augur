@@ -51,6 +51,6 @@ export class BulkSyncStrategy extends AbstractSyncStrategy implements SyncStrate
       await this.onLogsAdded(highestSyncedBlockNumber, this.parseLogs(sortedLogs));
     }
 
-    return endBlockNumber;
+    return highestSyncedBlockNumber;
   }
 }

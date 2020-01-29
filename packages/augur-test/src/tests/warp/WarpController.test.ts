@@ -41,6 +41,7 @@ describe('WarpController', () => {
   let firstCheckpointBlockHeaders: Block;
   let newBlockHeaders: Block;
   let seed: Seed;
+  let bulkSyncStrategy: BulkSyncStrategy;
 
   beforeAll(async () => {
     configureDexieForNode(true);
@@ -71,7 +72,7 @@ describe('WarpController', () => {
 
     db = await mock.makeDB(john.augur, ACCOUNTS);
 
-    const bulkSyncStrategy = new BulkSyncStrategy(
+    bulkSyncStrategy = new BulkSyncStrategy(
       provider.getLogs,
       db.logFilters.buildFilter,
       db.logFilters.onLogsAdded,
@@ -89,7 +90,7 @@ describe('WarpController', () => {
       await provider.getBlock(170),
     );
 
-    await bulkSyncStrategy.start(171, await provider.getBlockNumber());
+    await bulkSyncStrategy.start(170, await provider.getBlockNumber());
 
     secondCheckpointFileHash = await warpController.createAllCheckpoints(
       newBlockHeaders,
@@ -118,7 +119,7 @@ describe('WarpController', () => {
       await expect(
         warpController.queryDB(
           'MarketCreated',
-          [],
+          ['market'],
           '',
           uploadBlockHeaders.number,
           newBlockHeaders.number,
@@ -177,10 +178,6 @@ describe('WarpController', () => {
 
   describe('createCheckpoints', () => {
     test('Create checkpoint db records', async () => {
-      console.log(
-        'db.warpCheckpoints.table.toArray()',
-        await db.warpCheckpoints.table.toArray(),
-      );
       await expect(db.warpCheckpoints.table.toArray()).resolves.toEqual([
         expect.objectContaining({
           _id: 1,
@@ -402,14 +399,14 @@ describe('WarpController', () => {
 
     describe('partial sync', () => {
       test('should load specific market data', async () => {
-        const marketId = allMarketIds[3];
+        const marketId = allMarketIds[2];
         const blockNumber = await warpSyncStrategy.syncMarket(
           secondCheckpointFileHash,
           marketId,
         );
         expect(blockNumber).toEqual(175);
 
-        await db.rollback(blockNumber);
+        await db.rollback(blockNumber + 1);
         const johnMarketList = await johnApi.route('getMarketsInfo', {
           marketIds: [marketId],
         });
@@ -417,6 +414,9 @@ describe('WarpController', () => {
         const newJohnMarketList = await newJohnApi.route('getMarketsInfo', {
           marketIds: [marketId],
         });
+
+        console.log('johnMarketList', JSON.stringify(johnMarketList));
+        console.log('newJohnMarketList', JSON.stringify(newJohnMarketList));
 
         expect(newJohnMarketList).toEqual(johnMarketList);
       });
@@ -433,7 +433,7 @@ describe('WarpController', () => {
         expect(blockNumber).toEqual(175);
 
         // Rollback to avoid having to deal with data newer than the warp sync.
-        await db.rollback(blockNumber);
+        await db.rollback(blockNumber + 1);
         const johnUserAccountData = await johnApi.route('getUserAccountData', {
           universe: addresses.Universe,
           account: john.account.publicKey,
@@ -452,19 +452,32 @@ describe('WarpController', () => {
       test('should populate market data', async () => {
         // populate db.
         await warpSyncStrategy.start(secondCheckpointFileHash);
+
+
+        await db.rollback(176);
+        const johnMarketList = await johnApi.route('getMarkets', {
+          universe: addresses.Universe,
+        });
+
+        await expect(
+          newJohnApi.route('getMarkets', {
+            universe: addresses.Universe,
+          }),
+        ).resolves.toEqual(johnMarketList);
       });
     });
 
     describe('checkpoint syncing', () => {
       test('identify new diff and just pull that', async () => {
         // populate db.
-        await warpSyncStrategy.start(firstCheckpointFileHash);
+        let blockNumber = await warpSyncStrategy.start(firstCheckpointFileHash);
 
         // This should populate the checkpoints DB.
         await newJohnWarpController.createAllCheckpoints(
           firstCheckpointBlockHeaders,
         );
 
+        await db.rollback(blockNumber + 1);
         const johnMarketList = await johnApi.route('getMarkets', {
           universe: addresses.Universe,
         });
@@ -474,16 +487,16 @@ describe('WarpController', () => {
           newJohnApi.route('getMarkets', {
             universe: addresses.Universe,
           }),
-        ).resolves.not.toEqual(johnMarketList);
+        ).resolves.toEqual(johnMarketList);
 
         // populate db. Admittedly this just proves the logs were loaded.
-        const blockNumber = await warpSyncStrategy.start(
+        blockNumber = await warpSyncStrategy.start(
           secondCheckpointFileHash,
         );
 
-        expect(blockNumber).toEqual(175);
+        await db.rollback(blockNumber - 10);
+        await bulkSyncStrategy.start(blockNumber - 10, blockNumber + 1);
 
-        await db.rollback(blockNumber - 1);
         const rolledbackJohnMarketList = await johnApi.route('getMarkets', {
           universe: addresses.Universe,
         });
