@@ -130,14 +130,9 @@ export default function setAlertText(alert: any, callback: Function) {
               alert.status,
               marketInfo
             );
-            const quantity = alert.params.unmatchedShares
-              ? alert.params.unmatchedShares
-              : convertOnChainAmountToDisplayAmount(
-                  alert.params.amount,
-                  createBigNumber(marketInfo.tickSize)
-                );
+
             alert.details = `${orderType}  ${
-              formatShares(quantity).formatted
+              formatShares(alert.params.unmatchedShares.formatted).formatted
             } of ${outcomeDescription} @ ${formatDai(price).formatted}`;
           })
         );

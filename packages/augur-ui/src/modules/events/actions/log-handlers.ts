@@ -260,6 +260,7 @@ export const handleTokenBalanceChangedLog = (
 };
 
 export const handleOrderLog = (log: any) => {
+  console.log('Order Event: ', log);
   const type = log.eventType;
   switch (type) {
     case OrderEventType.Create:
@@ -279,14 +280,16 @@ export const handleOrderCreatedLog = (log: Logs.ParsedOrderEventLog) => (
   dispatch: ThunkDispatch<void, any, Action>,
   getState: () => AppState
 ) => {
-  const { loginAccount, authStatus } = getState();
+  const marketId = log.market;
   const isUserDataUpdate = isSameAddress(
     log.orderCreator,
-    loginAccount.mixedCaseAddress
+    getState().loginAccount.mixedCaseAddress
   );
-  if (isUserDataUpdate && authStatus.isLogged) {
+  if (isUserDataUpdate) {
     handleAlert(log, PUBLICTRADE, false, dispatch, getState);
+
     dispatch(loadAccountOpenOrders());
+    dispatch(loadAccountPositionsTotals());
   }
 };
 
@@ -294,28 +297,26 @@ export const handleOrderCanceledLog = (log: Logs.ParsedOrderEventLog) => (
   dispatch: ThunkDispatch<void, any, Action>,
   getState: () => AppState
 ) => {
-  const { loginAccount, authStatus } = getState();
+  const marketId = log.market;
   const isUserDataUpdate = isSameAddress(
     log.orderCreator,
-    loginAccount.mixedCaseAddress
+    getState().loginAccount.mixedCaseAddress
   );
   if (isUserDataUpdate) {
     // TODO: do we need to remove stuff based on events?
     // if (!log.removed) dispatch(removeCanceledOrder(log.orderId));
     //handleAlert(log, CANCELORDER, dispatch, getState);
     const { blockchain } = getState();
-    if (authStatus.isLogged) {
-      dispatch(
-        updateAlert(log.orderId, {
-          name: CANCELORDER,
-          timestamp: blockchain.currentAugurTimestamp * 1000,
-          status: TXEventName.Success,
-          params: { ...log },
-        })
-      );
-      dispatch(loadAccountOpenOrders());
-      dispatch(loadAccountPositionsTotals());
-    }
+    dispatch(
+      updateAlert(log.orderId, {
+        name: CANCELORDER,
+        timestamp: blockchain.currentAugurTimestamp * 1000,
+        status: TXEventName.Success,
+        params: { ...log },
+      })
+    );
+    dispatch(loadAccountOpenOrders());
+    dispatch(loadAccountPositionsTotals());
   }
 };
 
@@ -323,19 +324,16 @@ export const handleOrderFilledLog = (log: Logs.ParsedOrderEventLog) => (
   dispatch: ThunkDispatch<void, any, Action>,
   getState: () => AppState
 ) => {
-  const { loginAccount, authStatus } = getState();
   const marketId = log.market;
-  const { address } = loginAccount;
+  const { address } = getState().loginAccount;
   const isUserDataUpdate =
     isSameAddress(log.orderCreator, address) ||
     isSameAddress(log.orderFiller, address);
-  if (isUserDataUpdate && authStatus.isLogged) {
-    dispatch(
-      orderFilled(marketId, log, isSameAddress(log.orderCreator, address))
-    );
+  if (isUserDataUpdate) {
+    handleAlert(log, PUBLICFILLORDER, true, dispatch, getState);
     dispatch(loadUserFilledOrders({ marketId }));
     dispatch(loadAccountOpenOrders());
-    handleAlert(log, PUBLICFILLORDER, true, dispatch, getState);
+    dispatch(orderFilled(marketId, log, isSameAddress(log.orderCreator, address)));
   }
   dispatch(loadMarketTradingHistory(marketId));
 };
