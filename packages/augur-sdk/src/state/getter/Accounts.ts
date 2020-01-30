@@ -304,7 +304,7 @@ export class Accounts<TBigNumber> {
         params.action === Action.ALL) &&
       (params.coin === Coin.DAI || params.coin === Coin.ALL)
     ) {
-      const orderLogs = await db.OrderEvent.where('timestamp').between(formattedStartTime, formattedEndTime, true, true).and((log) => {
+      const orderLogs = await db.ParsedOrderEvent.where('timestamp').between(formattedStartTime, formattedEndTime, true, true).and((log) => {
         if (log.universe !== params.universe) return false;
         return log.orderCreator === params.account || log.orderFiller === params.account;
       }).toArray();

@@ -29,7 +29,7 @@ export class SyncableDB extends RollbackTable {
     this.eventName = eventName;
 
     db.notifySyncableDBAdded(this);
-    db.registerEventListener(this.eventName, this.addNewBlock);
+    db.registerEventListener(this.eventName, this.addNewBlock.bind(this));
 
     this.rollingBack = false;
   }
@@ -61,7 +61,7 @@ export class SyncableDB extends RollbackTable {
     // TODO Make any other external calls as needed (such as pushing user's balance to UI)
   }
 
-  addNewBlock = async (blocknumber: number, logs: ParsedLog[]): Promise<number> => {
+  async addNewBlock(blocknumber: number, logs: ParsedLog[]): Promise<number> {
     // don't do anything until rollback is complete. We'll sync back to this block later
     if (this.rollingBack) {
       return -1;

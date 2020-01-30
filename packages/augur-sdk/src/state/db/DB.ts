@@ -28,7 +28,7 @@ import {
   MarketOIChangedLog,
   MarketParticipantsDisavowedLog,
   MarketTransferredLog,
-  MarketVolumeChangedLog,
+  MarketVolumeChangedLog, OrderEventLog,
   ParsedOrderEventLog,
   ParticipationTokensRedeemedLog,
   ProfitLossChangedLog,
@@ -49,6 +49,7 @@ import { CurrentOrdersDatabase } from './CurrentOrdersDB';
 //import { LiquidityDB, LiquidityLastUpdated, MarketHourlyLiquidity } from './LiquidityDB';
 import { DisputeDatabase } from './DisputeDB';
 import { MarketDB } from './MarketDB';
+import { ParsedOrderEventDB } from './ParsedOrderEventDB';
 import { SyncableDB } from './SyncableDB';
 import { SyncStatus } from './SyncStatus';
 import { WarpCheckpoints } from './WarpCheckpoints';
@@ -72,6 +73,7 @@ export class DB {
   private currentOrdersDatabase: CurrentOrdersDatabase;
   private marketDatabase: MarketDB;
   private cancelledOrdersDatabase: CancelledOrdersDB;
+  private parsedOrderEventDatabase: ParsedOrderEventDB;
   private zeroXOrders: ZeroXOrders;
   syncStatus: SyncStatus;
   warpCheckpoints: WarpCheckpoints;
@@ -159,6 +161,7 @@ export class DB {
     this.disputeDatabase = new DisputeDatabase(this, networkId, 'Dispute', ['InitialReportSubmitted', 'DisputeCrowdsourcerCreated', 'DisputeCrowdsourcerContribution', 'DisputeCrowdsourcerCompleted'], this.augur);
     this.currentOrdersDatabase = new CurrentOrdersDatabase(this, networkId, 'CurrentOrders', ['OrderEvent'], this.augur);
     this.marketDatabase = new MarketDB(this, networkId, this.augur);
+    this.parsedOrderEventDatabase = new ParsedOrderEventDB(this, networkId, this.augur);
     this.cancelledOrdersDatabase = new CancelledOrdersDB(this, networkId, this.augur);
 
     if (enableZeroX) {
@@ -188,6 +191,7 @@ export class DB {
     schemas['Markets'] = 'market,reportingState,universe,marketCreator,timestamp,finalized,blockNumber';
     schemas['CurrentOrders'] = 'orderId,[market+open],[market+outcome+orderType],orderCreator,orderFiller,blockNumber';
     schemas['Dispute'] = '[market+payoutNumerators],market,blockNumber';
+    schemas['ParsedOrderEvents'] = '[blockNumber+logIndex],blocknumber,market,timestamp,orderId,[universe+eventType+timestamp],[market+eventType],eventType,orderCreator,orderFiller';
     schemas['ZeroXOrders'] = 'orderHash,[market+outcome+orderType],orderCreator,blockNumber';
     schemas['CancelledOrders'] = 'orderHash,[makerAddress+market]';
     schemas['SyncStatus'] = 'eventName,blockNumber,syncing';
@@ -232,6 +236,15 @@ export class DB {
         )
       );
     }
+
+    dbSyncPromises.push(
+      this.syncableDatabases['ParsedOrderEvents'].sync(
+        augur,
+        chunkSize,
+        blockstreamDelay,
+        highestAvailableBlockNumber
+      )
+    );
 
     await Promise.all(dbSyncPromises);
 
@@ -291,6 +304,7 @@ export class DB {
     dbRollbackPromises.push(this.disputeDatabase.rollback(blockNumber));
     dbRollbackPromises.push(this.currentOrdersDatabase.rollback(blockNumber));
     dbRollbackPromises.push(this.marketDatabase.rollback(blockNumber));
+    dbRollbackPromises.push(this.parsedOrderEventDatabase.rollback(blockNumber));
 
     // TODO Figure out a way to handle concurrent request limit of 40
     await Promise.all(dbRollbackPromises).catch(error => { throw error; });
@@ -357,7 +371,7 @@ export class DB {
   get MarketTransferred() { return this.dexieDB.table<MarketTransferredLog>('MarketTransferred'); }
   get MarketVolumeChanged() { return this.dexieDB.table<MarketVolumeChangedLog>('MarketVolumeChanged'); }
   get MarketOIChanged() { return this.dexieDB.table<MarketOIChangedLog>('MarketOIChanged'); }
-  get OrderEvent() { return this.dexieDB.table<ParsedOrderEventLog>('OrderEvent'); }
+  get OrderEvent() { return this.dexieDB.table<OrderEventLog>('OrderEvent'); }
   get Cancel() { return this.dexieDB['Cancel'] as Dexie.Table<CancelLog, any>; }
   get CancelledOrders() { return this.dexieDB['CancelledOrders'] as Dexie.Table<CancelledOrderLog, any>; }
   get ParticipationTokensRedeemed() { return this.dexieDB.table<ParticipationTokensRedeemedLog>('ParticipationTokensRedeemed'); }
@@ -374,6 +388,7 @@ export class DB {
   get TransferBatch() { return this.dexieDB.table<TransferBatchLog>('TransferBatch'); }
   get ShareTokenBalanceChanged() { return this.dexieDB.table<ShareTokenBalanceChangedLog>('ShareTokenBalanceChanged'); }
   get Markets() { return this.dexieDB.table<MarketData>('Markets'); }
+  get ParsedOrderEvent() { return this.dexieDB.table<ParsedOrderEventLog>('ParsedOrderEvents'); }
   get Dispute() { return this.dexieDB.table<DisputeDoc>('Dispute'); }
   get CurrentOrders() { return this.dexieDB.table<CurrentOrder>('CurrentOrders'); }
   get ZeroXOrders() { return this.dexieDB.table<StoredOrder>('ZeroXOrders'); }
