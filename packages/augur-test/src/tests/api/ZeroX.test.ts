@@ -1,32 +1,19 @@
 import { WSClient } from '@0x/mesh-rpc-client';
-import { ContractAddresses } from '@augurproject/artifacts/build';
-import { sleep } from '@augurproject/core/build/libraries/HelperFunctions';
-import { EthersProvider } from '@augurproject/ethersjs-provider';
-import { Connectors } from '@augurproject/sdk';
-import { BrowserMesh } from '@augurproject/sdk/build';
-import { DB } from '@augurproject/sdk/build/state/db/DB';
-import { API } from '@augurproject/sdk/build/state/getter/API';
-import { ZeroXOrders } from '@augurproject/sdk/build/state/getter/ZeroXOrdersGetters';
-import {
-  ACCOUNTS,
-  ContractAPI,
-  defaultSeedPath,
-  loadSeedFile,
-} from '@augurproject/tools';
-import {
-  NULL_ADDRESS,
-  stringTo32ByteHex,
-} from '@augurproject/tools/build/libs/Utils';
 import { BigNumber } from 'bignumber.js';
 import { formatBytes32String } from 'ethers/utils';
 import * as _ from 'lodash';
-import { makeDbMock, makeProvider, MockGnosisRelayAPI } from '../../libs';
+import { ContractAPI, ACCOUNTS, loadSeedFile, defaultSeedPath } from '@augurproject/tools';
+import { EthersProvider } from '@augurproject/ethersjs-provider';
+import { ContractAddresses } from '@augurproject/artifacts';
+import { DB } from '@augurproject/sdk/build/state/db/DB';
+import { Connectors, BrowserMesh } from '@augurproject/sdk';
+import { API } from '@augurproject/sdk/build/state/getter/API';
+import { ZeroXOrders } from '@augurproject/sdk/build/state/getter/ZeroXOrdersGetters';
+import { sleep } from '@augurproject/core/build/libraries/HelperFunctions';
+import { MockMeshServer, stopServer } from '../../libs/MockMeshServer';
+import { NULL_ADDRESS, stringTo32ByteHex } from '@augurproject/tools/build/libs/Utils';
 import { MockBrowserMesh } from '../../libs/MockBrowserMesh';
-import {
-  MockMeshServer,
-  SERVER_PORT,
-  stopServer,
-} from '../../libs/MockMeshServer';
+import { makeDbMock, makeProvider, MockGnosisRelayAPI } from '../../libs';
 
 describe('Augur API :: ZeroX :: ', () => {
   let john: ContractAPI;
@@ -45,8 +32,8 @@ describe('Augur API :: ZeroX :: ', () => {
   const mock = makeDbMock();
 
   beforeAll(async () => {
-    await MockMeshServer.create();
-    meshClient = new WSClient(`ws://localhost:${SERVER_PORT}`);
+    const { port } = await MockMeshServer.create();
+    meshClient = new WSClient(`ws://localhost:${port}`);
     meshBrowser = new MockBrowserMesh(meshClient);
 
     const seed = await loadSeedFile(defaultSeedPath);
@@ -115,6 +102,11 @@ describe('Augur API :: ZeroX :: ', () => {
       const orders: ZeroXOrders = await johnAPI.route('getZeroXOrders', {
         marketId: market.address,
       });
+      expect(orders).toBeDefined();
+      expect(orders).toHaveProperty(market.address);
+      expect(orders[market.address]).toHaveProperty('0');
+      expect(orders[market.address]['0']).toHaveProperty('0');
+
       const thisOrder = _.values(orders[market.address][0]['0'])[0];
       // Get this order
       const order = await johnAPI.route('getZeroXOrder', {
@@ -275,6 +267,10 @@ describe('Augur API :: ZeroX :: ', () => {
       const orders: ZeroXOrders = await johnAPI.route('getZeroXOrders', {
         marketId: market.address,
       });
+      expect(orders).toBeDefined();
+      expect(orders).toHaveProperty(market.address);
+      expect(orders[market.address]).toHaveProperty('0');
+      expect(orders[market.address]['0']).toHaveProperty('0');
       const order = _.values(orders[market.address][0]['0'])[0];
 
       await john.cancelOrder(order.orderId);
@@ -396,6 +392,10 @@ describe('Augur API :: ZeroX :: ', () => {
       const orders: ZeroXOrders = await johnAPI.route('getZeroXOrders', {
         marketId: market.address,
       });
+      expect(orders).toBeDefined();
+      expect(orders).toHaveProperty(market.address);
+      expect(orders[market.address]).toHaveProperty('0');
+      expect(orders[market.address]['0']).toHaveProperty('0');
       const order = _.values(orders[market.address][0]['0'])[0];
       await expect(order).not.toBeUndefined();
       await expect(order.price).toEqual('0.22');
