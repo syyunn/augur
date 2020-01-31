@@ -78,6 +78,8 @@ export class DerivedDB extends RollbackTable {
     logs: ParsedLog[],
     syncing = false
   ): Promise<number> {
+    logs = _.cloneDeep(logs);
+
     let success = true;
     let documentsByIdByTopic = null;
     if (logs.length > 0) {
