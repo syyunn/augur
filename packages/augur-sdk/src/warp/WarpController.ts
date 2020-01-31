@@ -1,11 +1,10 @@
-import { formatInt256 } from '@augurproject/utils/build';
 import Dexie from 'dexie';
 import { Block } from 'ethers/providers';
 import * as IPFS from 'ipfs';
 import * as Unixfs from 'ipfs-unixfs';
 import { DAGNode } from 'ipld-dag-pb';
 import _ from 'lodash';
-import { NULL_ADDRESS, Provider } from '..';
+import { Provider } from '..';
 
 import { DB } from '../state/db/DB';
 import { Address, Log } from '../state/logs/types';
@@ -25,7 +24,7 @@ type AllDbs = {
 // Assuming indexes we need are simple ones e.g. 'market'.
 // Will need to rethink this for something like '[universe+reporter]'.
 type DbExpander<P> = P extends keyof AllDbs
-  ? { databaseName: P; indexes?: Array<keyof AllDbs[P]> }
+  ? { databaseName: P; target?: keyof AllDbs; indexes?: Array<keyof AllDbs[P]> }
   : never;
 type Db = DbExpander<keyof AllDbs>;
 type RollupDescription = Readonly<Db[]>;
@@ -135,7 +134,10 @@ export class WarpController {
     });
 
     topLevelDirectory.addLink(
-      await this.buildDirectory('accounts', await this.createAccountRollups(begin.number, end.number))
+      await this.buildDirectory(
+        'accounts',
+        await this.createAccountRollups(begin.number, end.number)
+      )
     );
 
     topLevelDirectory.addLink(
@@ -413,6 +415,15 @@ export class WarpController {
         databaseName: 'ShareTokenBalanceChanged',
         indexes: ['account'],
       },
+      {
+        databaseName: 'ProfitLossChanged',
+        indexes: ['account'],
+      },
+      {
+        databaseName: 'ParsedOrderEvent',
+        target: 'OrderEvent',
+        indexes: ['orderCreator'],
+      },
     ];
 
     // @todo figure out if this is the best way to find all accounts.
@@ -436,11 +447,11 @@ export class WarpController {
     startBlockNumber = 0,
     endBlockNumber?: number
   ) => {
-    const query = await this.db[dbName].where('blockNumber').between(startBlockNumber, endBlockNumber, true, true);
+    const query = await this.db[dbName]
+      .where('blockNumber')
+      .between(startBlockNumber, endBlockNumber, true, true);
 
-    query.and((item) =>
-      properties.some((property) => item[property] === criteria)
-    );
+    query.and(item => properties.some(property => item[property] === criteria));
 
     return query.toArray();
   };
@@ -452,11 +463,16 @@ export class WarpController {
     startBlockNumber = 0,
     endBlockNumber?: number
   ) => {
-    const logs = await this.queryDB(dbName, properties, criteria, startBlockNumber, endBlockNumber);
+    const logs = await this.queryDB(
+      dbName,
+      properties,
+      criteria,
+      startBlockNumber,
+      endBlockNumber
+    );
 
     return this.ipfsAddRows(logs);
-  }
-
+  };
 
   async createRollup(
     rollupDescriptions: RollupDescription,
@@ -469,15 +485,39 @@ export class WarpController {
         const links: IPFSObject[] = [];
         const items = _.flatten(
           await Promise.all(
-            rollupDescriptions.map(r =>
-              this.queryDBWithAddRow(
-                r.databaseName,
-                r.indexes,
-                id,
-                startBlockNumber,
-                endBlockNumber
-              )
-            )
+            rollupDescriptions.map(async r => {
+              if (r.target) {
+                // This exists if we need to lookup logs using a non-generic db.
+
+                const logs = await this.queryDB(
+                  r.databaseName,
+                  r.indexes,
+                  id,
+                  startBlockNumber,
+                  endBlockNumber
+                ) as unknown as Log[];
+
+                // Types are fun!
+                const conditions = logs.map(log => [log.blockNumber, log.logIndex]) as unknown as void[][];
+                const rows = await this.db[r.target]
+                  .where('[blockNumber+logIndex]')
+                  .anyOf(conditions)
+                  .toArray();
+
+
+                console.log('alltherows', rows);
+
+                return this.ipfsAddRows(rows);
+              } else {
+                return this.queryDBWithAddRow(
+                  r.databaseName,
+                  r.indexes,
+                  id,
+                  startBlockNumber,
+                  endBlockNumber
+                );
+              }
+            })
           )
         );
 

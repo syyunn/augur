@@ -30,7 +30,6 @@ describe('WarpController', () => {
   let dependencies: ContractDependenciesEthers;
   let ipfs;
   let john: ContractAPI;
-  let newJohn: ContractAPI;
   let networkId: NetworkId;
   let provider: TestEthersProvider;
   let warpController: WarpController;
@@ -60,15 +59,8 @@ describe('WarpController', () => {
     uploadBlockHeaders = await provider.getBlock(0);
     firstCheckpointBlockHeaders = await provider.getBlock(170);
     newBlockHeaders = await provider.getBlock('latest');
-  });
 
-  beforeEach(async () => {
     john = await ContractAPI.userWrapper(ACCOUNTS[0], provider, seed.addresses);
-    newJohn = await ContractAPI.userWrapper(
-      ACCOUNTS[0],
-      provider,
-      seed.addresses,
-    );
 
     db = await mock.makeDB(john.augur, ACCOUNTS);
 
@@ -120,16 +112,21 @@ describe('WarpController', () => {
         warpController.queryDB(
           'MarketCreated',
           ['market'],
-          '',
+          allMarketIds[0],
           uploadBlockHeaders.number,
           newBlockHeaders.number,
         ),
-      ).resolves.toHaveLength(5);
+      ).resolves.toEqual([
+        expect.objectContaining({
+          market: allMarketIds[0],
+        })
+      ]);
     });
   });
 
   describe('getCheckpointBlockRange', () => {
     test('should return the range', async () => {
+      console.log('db.warpCheckpoints', JSON.stringify(await db.warpCheckpoints.table.toArray()));
       await expect(
         db.warpCheckpoints.getCheckpointBlockRange(),
       ).resolves.toEqual([
@@ -137,7 +134,7 @@ describe('WarpController', () => {
           number: 0,
         }),
         expect.objectContaining({
-          number: 175,
+          number: 177,
         }),
       ]);
     });
@@ -145,8 +142,14 @@ describe('WarpController', () => {
 
   describe('createCheckpoint method', () => {
     test('should create checkpoint file and return the hash', async () => {
-      const targetBeginNumber = 151;
-      const targetEndNumber = 158;
+      // Specific event type doesn't matter. Just need two logs that
+      // will produce a range of blocks whose first and last will
+      // contain said log.
+      const logs = await john.augur.contractEvents.getLogs('MarketCreated', uploadBlockHeaders.number, newBlockHeaders.number);
+
+      const targetBeginNumber = Math.min(...logs.map(item  => item.blockNumber));;
+      const targetEndNumber = Math.max(...logs.map(item  => item.blockNumber));;
+
       const hash = await warpController.createCheckpoint(
         await provider.getBlock(targetBeginNumber),
         await provider.getBlock(targetEndNumber),
@@ -172,7 +175,7 @@ describe('WarpController', () => {
     test('return array of checkpoints available', async () => {
       await expect(
         warpController.getAvailableCheckpointsByHash(secondCheckpointFileHash),
-      ).resolves.toEqual([0, 166, 174]);
+      ).resolves.toEqual([0, 168, 176]);
     });
   });
 
@@ -185,7 +188,7 @@ describe('WarpController', () => {
             number: 0,
           }),
           end: expect.objectContaining({
-            number: 165,
+            number: 167,
           }),
           ipfsInfo: expect.objectContaining({
             Name: '0',
@@ -194,31 +197,31 @@ describe('WarpController', () => {
         expect.objectContaining({
           _id: 2,
           begin: expect.objectContaining({
-            number: 166,
-          }),
-          end: expect.objectContaining({
-            number: 173,
-          }),
-          ipfsInfo: expect.objectContaining({
-            Name: '166',
-          }),
-        }),
-        expect.objectContaining({
-          _id: 3,
-          begin: expect.objectContaining({
-            number: 174,
+            number: 168,
           }),
           end: expect.objectContaining({
             number: 175,
           }),
           ipfsInfo: expect.objectContaining({
-            Name: '174',
+            Name: '168',
+          }),
+        }),
+        expect.objectContaining({
+          _id: 3,
+          begin: expect.objectContaining({
+            number: 176,
+          }),
+          end: expect.objectContaining({
+            number: 177,
+          }),
+          ipfsInfo: expect.objectContaining({
+            Name: '176',
           }),
         }),
         expect.objectContaining({
           _id: 4,
           begin: expect.objectContaining({
-            number: 176,
+            number: 178,
           }),
         }),
       ]);
@@ -232,10 +235,10 @@ describe('WarpController', () => {
           name: '0',
         }),
         expect.objectContaining({
-          name: '166',
+          name: '168',
         }),
         expect.objectContaining({
-          name: '174',
+          name: '176',
         }),
       ]);
     });
@@ -248,7 +251,7 @@ describe('WarpController', () => {
             number: 0,
           }),
           expect.objectContaining({
-            number: 175,
+            number: 177,
           }),
         ]);
     });
@@ -373,16 +376,54 @@ describe('WarpController', () => {
   });
 
   describe('syncing', () => {
-    let johnApi: API;
+    let fixture: ContractAPI;
+    let fixtureApi: API;
+    let fixtureDB: DB;
+    let fixtureBulkSyncStrategy: BulkSyncStrategy;
+
+    let newJohn: ContractAPI;
     let newJohnApi: API;
-    let warpSyncStrategy: WarpSyncStrategy;
     let newJohnDB: DB;
     let newJohnWarpController: WarpController;
+    let warpSyncStrategy: WarpSyncStrategy;
 
     beforeEach(async () => {
-      johnApi = new API(john.augur, Promise.resolve(db));
+      fixture = await ContractAPI.userWrapper(
+        ACCOUNTS[0],
+        provider,
+        seed.addresses,
+      );
+
+      fixtureDB = await mock.makeDB(fixture.augur, ACCOUNTS);
+      fixtureApi = new API(john.augur, Promise.resolve(fixtureDB));
+
+      fixtureBulkSyncStrategy = new BulkSyncStrategy(
+        provider.getLogs,
+        fixtureDB.logFilters.buildFilter,
+        fixtureDB.logFilters.onLogsAdded,
+        fixture.augur.contractEvents.parseLogs,
+        1,
+      );
+
+      newJohn = await ContractAPI.userWrapper(
+        ACCOUNTS[0],
+        provider,
+        seed.addresses,
+      );
 
       newJohnDB = await mock.makeDB(newJohn.augur, ACCOUNTS);
+      newJohnWarpController = new WarpController(
+        newJohnDB,
+        ipfs,
+        provider,
+        uploadBlockHeaders,
+      );
+      newJohnApi = new API(newJohn.augur, Promise.resolve(newJohnDB));
+      warpSyncStrategy = new WarpSyncStrategy(
+        newJohnWarpController,
+        newJohnDB.logFilters.onLogsAdded,
+      );
+
       newJohnWarpController = new WarpController(
         newJohnDB,
         ipfs,
@@ -399,15 +440,14 @@ describe('WarpController', () => {
 
     describe('partial sync', () => {
       test('should load specific market data', async () => {
-        const marketId = allMarketIds[2];
+        const marketId = allMarketIds[3];
         const blockNumber = await warpSyncStrategy.syncMarket(
           secondCheckpointFileHash,
           marketId,
         );
-        expect(blockNumber).toEqual(175);
 
-        await db.rollback(blockNumber + 1);
-        const johnMarketList = await johnApi.route('getMarketsInfo', {
+        await fixtureBulkSyncStrategy.start(0, blockNumber);
+        const fixtureMarketList = await fixtureApi.route('getMarketsInfo', {
           marketIds: [marketId],
         });
 
@@ -415,10 +455,7 @@ describe('WarpController', () => {
           marketIds: [marketId],
         });
 
-        console.log('johnMarketList', JSON.stringify(johnMarketList));
-        console.log('newJohnMarketList', JSON.stringify(newJohnMarketList));
-
-        expect(newJohnMarketList).toEqual(johnMarketList);
+        expect(newJohnMarketList).toEqual(fixtureMarketList);
       });
 
       test('should load specific user data', async () => {
@@ -430,11 +467,8 @@ describe('WarpController', () => {
           newJohn.account.publicKey,
         );
 
-        expect(blockNumber).toEqual(175);
-
-        // Rollback to avoid having to deal with data newer than the warp sync.
-        await db.rollback(blockNumber + 1);
-        const johnUserAccountData = await johnApi.route('getUserAccountData', {
+        await fixtureBulkSyncStrategy.start(0, blockNumber);
+        const fixtureUserAccountData = await fixtureApi.route('getUserAccountData', {
           universe: addresses.Universe,
           account: john.account.publicKey,
         });
@@ -444,18 +478,17 @@ describe('WarpController', () => {
             universe: addresses.Universe,
             account: newJohn.account.publicKey,
           }),
-        ).resolves.toEqual(johnUserAccountData);
+        ).resolves.toEqual(fixtureUserAccountData);
       });
     });
 
     describe('full sync', () => {
       test('should populate market data', async () => {
         // populate db.
-        await warpSyncStrategy.start(secondCheckpointFileHash);
+        const blockNumber = await warpSyncStrategy.start(secondCheckpointFileHash);
 
-
-        await db.rollback(176);
-        const johnMarketList = await johnApi.route('getMarkets', {
+        await fixtureBulkSyncStrategy.start(0, blockNumber);
+        const fixtureMarketList = await fixtureApi.route('getMarkets', {
           universe: addresses.Universe,
         });
 
@@ -463,7 +496,7 @@ describe('WarpController', () => {
           newJohnApi.route('getMarkets', {
             universe: addresses.Universe,
           }),
-        ).resolves.toEqual(johnMarketList);
+        ).resolves.toEqual(fixtureMarketList);
       });
     });
 
@@ -477,8 +510,8 @@ describe('WarpController', () => {
           firstCheckpointBlockHeaders,
         );
 
-        await db.rollback(blockNumber + 1);
-        const johnMarketList = await johnApi.route('getMarkets', {
+        await fixtureBulkSyncStrategy.start(0, blockNumber);
+        const fixtureMarketList = await fixtureApi.route('getMarkets', {
           universe: addresses.Universe,
         });
 
@@ -487,17 +520,15 @@ describe('WarpController', () => {
           newJohnApi.route('getMarkets', {
             universe: addresses.Universe,
           }),
-        ).resolves.toEqual(johnMarketList);
+        ).resolves.toEqual(fixtureMarketList);
 
         // populate db. Admittedly this just proves the logs were loaded.
         blockNumber = await warpSyncStrategy.start(
           secondCheckpointFileHash,
         );
 
-        await db.rollback(blockNumber - 10);
-        await bulkSyncStrategy.start(blockNumber - 10, blockNumber + 1);
-
-        const rolledbackJohnMarketList = await johnApi.route('getMarkets', {
+        await fixtureBulkSyncStrategy.start(0, blockNumber);
+        const rolledbackFixtureMarketList = await fixtureApi.route('getMarkets', {
           universe: addresses.Universe,
         });
 
@@ -505,7 +536,7 @@ describe('WarpController', () => {
           newJohnApi.route('getMarkets', {
             universe: addresses.Universe,
           }),
-        ).resolves.toEqual(rolledbackJohnMarketList);
+        ).resolves.toEqual(rolledbackFixtureMarketList);
       });
     });
   });
