@@ -108,9 +108,11 @@ export class MarketDB extends DerivedDB {
     const marketDataById = _.keyBy(marketsData, 'market');
     for (const marketId of ids) {
       if (Object.keys(marketDataById).includes(marketId)) {
-        const doc = await this.getOrderBookData(this.augur, marketId, marketDataById[marketId], reportingFeeDivisor, ETHInAttoDAI);
-        // This is needed to make rollbacks work properly
-        doc['blockNumber'] = highestSyncedBlockNumber;
+        // Skip for markets we haven't loaded yet.
+      if(!marketDataById[marketId]) continue;
+      const doc = await this.getOrderBookData(this.augur, marketId, marketDataById[marketId], reportingFeeDivisor, ETHInAttoDAI);
+      // This is needed to make rollbacks work properly
+      doc['blockNumber'] = highestSyncedBlockNumber;
         doc['market'] = marketId;
         documents.push(doc);
       }
