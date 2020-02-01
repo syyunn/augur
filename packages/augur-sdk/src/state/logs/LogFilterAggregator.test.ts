@@ -26,7 +26,7 @@ describe('LogFilterAggregator', () => {
       blockHash: 'HASH-1234',
       blockNumber: 1234,
       logIndex: 1,
-      address: '0xSOMEADDRESS',
+      address: CONTRACT_ADDRESSES[1],
       data: '',
       name: '',
       removed: false,
@@ -39,7 +39,7 @@ describe('LogFilterAggregator', () => {
       blockHash: 'HASH-1234',
       blockNumber: 1234,
       logIndex: 2,
-      address: '0xSOMEADDRESS',
+      address: CONTRACT_ADDRESSES[1],
       data: '',
       name: '',
       removed: false,
@@ -52,7 +52,7 @@ describe('LogFilterAggregator', () => {
       blockHash: 'HASH-1234',
       blockNumber: 1234,
       logIndex: 3,
-      address: '0xSOMEUNKNOWNADDRESS',
+      address: CONTRACT_ADDRESSES[0],
       data: '',
       name: '',
       removed: false,
@@ -65,7 +65,7 @@ describe('LogFilterAggregator', () => {
       blockHash: 'HASH-1234',
       blockNumber: 1234,
       logIndex: 3,
-      address: '0xSOMEUNKNOWNADDRESS',
+      address: CONTRACT_ADDRESSES[0],
       data: '',
       name: '',
       removed: false,
@@ -202,28 +202,26 @@ describe('LogFilterAggregator', () => {
           logFilterAggregator.listenForAllEvents(onNewLogCallback);
         });
 
-        test('should pass logs to callback', async () => {
+        test('should pass logs to callback for single filter', async () => {
+          logFilterAggregator.listenForEvent('SomeEvent', jest.fn());
+
           await logFilterAggregator.onLogsAdded(1234, sampleLogs);
 
+          // This will only include the logs we have callbacks registered for.
           expect(onNewLogCallback).toHaveBeenCalledWith(1234, [
-            expect.objectContaining({
-              transactionHash: 'HASHONE',
-            }),
             expect.objectContaining({
               transactionHash: 'HASHTWO',
             }),
             expect.objectContaining({
-              transactionHash: 'HASHTHREE',
-            }),
-            expect.objectContaining({
-              transactionHash: 'HASHFOUR',
+              transactionHash: 'HASHONE',
             }),
           ]);
         });
 
-        test('should emit an event with all logs', async () => {
+        test('should pass logs to callback for multiple filters', async () => {
           // Calling same callback twice to ensure order.
           logFilterAggregator.listenForEvent('SomeEvent', onNewLogCallback);
+          logFilterAggregator.listenForEvent('SomeOtherEvent', jest.fn());
 
           await logFilterAggregator.onLogsAdded(1234, sampleLogs);
 
@@ -236,16 +234,10 @@ describe('LogFilterAggregator', () => {
           // "All logs"
           expect(onNewLogCallback).toHaveBeenNthCalledWith(2, 1234, [
             expect.objectContaining({
-              transactionHash: 'HASHONE',
-            }),
-            expect.objectContaining({
               transactionHash: 'HASHTWO',
             }),
             expect.objectContaining({
-              transactionHash: 'HASHTHREE',
-            }),
-            expect.objectContaining({
-              transactionHash: 'HASHFOUR',
+              transactionHash: 'HASHONE',
             }),
           ]);
         });

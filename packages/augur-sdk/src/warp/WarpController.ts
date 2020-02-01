@@ -503,10 +503,7 @@ export class WarpController {
                   .where('[blockNumber+logIndex]')
                   .anyOf(conditions)
                   .toArray();
-
-
-                console.log('alltherows', rows);
-
+                
                 return this.ipfsAddRows(rows);
               } else {
                 return this.queryDBWithAddRow(

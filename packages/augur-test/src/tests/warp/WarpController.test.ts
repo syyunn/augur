@@ -126,7 +126,6 @@ describe('WarpController', () => {
 
   describe('getCheckpointBlockRange', () => {
     test('should return the range', async () => {
-      console.log('db.warpCheckpoints', JSON.stringify(await db.warpCheckpoints.table.toArray()));
       await expect(
         db.warpCheckpoints.getCheckpointBlockRange(),
       ).resolves.toEqual([
