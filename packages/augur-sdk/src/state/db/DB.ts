@@ -94,15 +94,15 @@ export class DB {
     { EventName: 'MarketMigrated', indexes: ['market'] },
     { EventName: 'MarketParticipantsDisavowed', indexes: ['market'] },
     { EventName: 'MarketTransferred', indexes: [] },
-    { EventName: 'MarketVolumeChanged', indexes: [], primaryKey: 'market' },
-    { EventName: 'MarketOIChanged', indexes: [], primaryKey: 'market' },
+    { EventName: 'MarketVolumeChanged', indexes: ['market'] },
+    { EventName: 'MarketOIChanged', indexes: ['market'] },
     { EventName: 'OrderEvent', indexes: ['market', 'timestamp', 'orderId', '[universe+eventType+timestamp]', '[market+eventType]', 'eventType', 'orderCreator', 'orderFiller'] },
-    { EventName: 'Cancel', indexes: [], primaryKey: 'orderHash' },
+    { EventName: 'Cancel', indexes: ['orderHash'] },
     { EventName: 'ParticipationTokensRedeemed', indexes: ['timestamp'] },
     { EventName: 'ProfitLossChanged', indexes: ['[universe+account+timestamp]', 'account', 'market'] },
     { EventName: 'ReportingParticipantDisavowed', indexes: [] },
     { EventName: 'TimestampSet', indexes: ['newTimestamp'] },
-    { EventName: 'TokenBalanceChanged', indexes: ['[universe+owner+tokenType]'], primaryKey: '[owner+token]' },
+    { EventName: 'TokenBalanceChanged', indexes: ['[owner+token]', '[universe+owner+tokenType]'] },
     { EventName: 'TokensMinted', indexes: [] },
     { EventName: 'TokensTransferred', indexes: [] },
     { EventName: 'TradingProceedsClaimed', indexes: ['timestamp'] },
@@ -110,7 +110,7 @@ export class DB {
     { EventName: 'UniverseForked', indexes: ['universe'] },
     { EventName: 'TransferSingle', indexes: ['to', 'from']},
     { EventName: 'TransferBatch', indexes: ['to', 'from']},
-    { EventName: 'ShareTokenBalanceChanged', indexes: ['[universe+account]', 'account'], primaryKey: '[account+market+outcome]'},
+    { EventName: 'ShareTokenBalanceChanged', indexes: ['[account+market+outcome]', '[universe+account]', 'account'] },
   ];
 
   constructor(readonly dexieDB: Dexie, readonly logFilters: LogFilterAggregatorInterface, private augur:Augur) {}
