@@ -2,6 +2,7 @@ import { SECONDS_IN_A_DAY } from '@augurproject/sdk';
 import { DB } from '@augurproject/sdk/build/state/db/DB';
 import { Action, Coin } from '@augurproject/sdk/build/state/getter/Accounts';
 import { API } from '@augurproject/sdk/build/state/getter/API';
+import { BulkSyncStrategy } from '@augurproject/sdk/build/state/sync/BulkSyncStrategy';
 import {
   ACCOUNTS,
   ContractAPI,
@@ -15,6 +16,7 @@ import { makeDbMock, makeProvider } from '../../../libs';
 const mock = makeDbMock();
 
 describe('State API :: Accounts :: ', () => {
+  let bulkSyncStrategy: BulkSyncStrategy;
   let db: Promise<DB>;
   let api: API;
   let john: ContractAPI;
@@ -26,8 +28,18 @@ describe('State API :: Accounts :: ', () => {
 
     john = await ContractAPI.userWrapper(ACCOUNTS[0], provider, seed.addresses);
     mary = await ContractAPI.userWrapper(ACCOUNTS[1], provider, seed.addresses);
+
+
     db = mock.makeDB(john.augur, ACCOUNTS);
     api = new API(john.augur, db);
+
+    bulkSyncStrategy = new BulkSyncStrategy(
+      provider.getLogs,
+      (await db).logFilters.buildFilter,
+      (await db).logFilters.onLogsAdded,
+      john.augur.contractEvents.parseLogs,
+    );
+
     await john.approveCentralAuthority();
     await mary.approveCentralAuthority();
   });
@@ -42,7 +54,7 @@ describe('State API :: Accounts :: ', () => {
     ]);
     const johnScalarMarket = await john.createReasonableScalarMarket();
 
-    await (await db).sync(john.augur, mock.constants.chunkSize, 0);
+    await bulkSyncStrategy.start(0, await john.provider.getBlockNumber());
 
     let accountTransactionHistory = await api.route(
       'getAccountTransactionHistory',
@@ -189,7 +201,7 @@ describe('State API :: Accounts :: ', () => {
       stringTo32ByteHex('42')
     );
 
-    await (await db).sync(john.augur, mock.constants.chunkSize, 0);
+    await bulkSyncStrategy.start(0, await john.provider.getBlockNumber());
 
     // Fill orders
     const cost = numShares.times(78).div(10).times(1e18);
@@ -242,7 +254,7 @@ describe('State API :: Accounts :: ', () => {
       cost
     );
 
-    await (await db).sync(john.augur, mock.constants.chunkSize, 0);
+    await bulkSyncStrategy.start(0, await john.provider.getBlockNumber());
 
     accountTransactionHistory = await api.route(
       'getAccountTransactionHistory',
@@ -352,7 +364,7 @@ describe('State API :: Accounts :: ', () => {
       },
     ]);
 
-    await (await db).sync(john.augur, mock.constants.chunkSize, 0);
+    await bulkSyncStrategy.start(0, await john.provider.getBlockNumber());
 
     // Move time to open reporting
     let newTime = (await johnYesNoMarket.getEndTime_()).plus(
@@ -373,7 +385,7 @@ describe('State API :: Accounts :: ', () => {
     ];
     await john.doInitialReport(johnYesNoMarket, noPayoutSet);
 
-    await (await db).sync(john.augur, mock.constants.chunkSize, 0);
+    await bulkSyncStrategy.start(0, await john.provider.getBlockNumber());
 
     accountTransactionHistory = await api.route(
       'getAccountTransactionHistory',
@@ -448,7 +460,7 @@ describe('State API :: Accounts :: ', () => {
       }
     }
 
-    await (await db).sync(john.augur, mock.constants.chunkSize, 0);
+    await bulkSyncStrategy.start(0, await john.provider.getBlockNumber());
 
     accountTransactionHistory = await api.route(
       'getAccountTransactionHistory',
@@ -518,7 +530,7 @@ describe('State API :: Accounts :: ', () => {
       stringTo32ByteHex(''),
     );
 
-    await (await db).sync(john.augur, mock.constants.chunkSize, 0);
+    await bulkSyncStrategy.start(0, await john.provider.getBlockNumber());
 
     accountTransactionHistory = await api.route(
       'getAccountTransactionHistory',
@@ -669,7 +681,7 @@ describe('State API :: Accounts :: ', () => {
     await john.contribute(johnYesNoMarket, noPayoutSet, new BigNumber(5));
     await john.contribute(johnYesNoMarket, noPayoutSet, new BigNumber(7));
 
-    await (await db).sync(john.augur, mock.constants.chunkSize, 0);
+    await bulkSyncStrategy.start(0, await john.provider.getBlockNumber());
 
     let userCurrentDisputeStake = await api.route(
       'getUserCurrentDisputeStake',
