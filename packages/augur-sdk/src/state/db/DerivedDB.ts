@@ -80,10 +80,8 @@ export class DerivedDB extends RollbackTable {
   ): Promise<number> {
     logs = _.cloneDeep(logs);
 
-    let success = true;
     let documentsByIdByTopic = null;
     if (logs.length > 0) {
-      this.lock(this.HANDLE_MERGE_EVENT_LOCK);
       const documentsById = _.groupBy(logs, this.getIDValue.bind(this));
       documentsByIdByTopic = _.flatMap(documentsById, idDocuments => {
         const mostRecentTopics = _.flatMap(_.groupBy(idDocuments, 'topic'), documents => {
@@ -110,28 +108,16 @@ export class DerivedDB extends RollbackTable {
       // NOTE: "!syncing" is because during bulk sync we can rely on the order of events provided as they are handled in sequence
       if (this.requiresOrder && !syncing) documentsByIdByTopic = _.sortBy(documentsByIdByTopic, ['blockNumber', 'logIndex']);
       await this.bulkUpsertDocuments(documentsByIdByTopic);
-      this.clearLocks();
     }
 
-    if (success) {
-      if (!syncing) {
-        // The mutex behavior here is needed since a derived DB may be responding to multiple updates in parallel
-        while (this.updatingHighestSyncBlock) {
-          await sleep(10);
-        }
-        this.updatingHighestSyncBlock = true;
-        await this.syncStatus.setHighestSyncBlock(
-          this.dbName,
-          blocknumber,
-          syncing
-        );
-        this.updatingHighestSyncBlock = false;
-        if (logs.length > 0) {
-          this.augur.events.emit(`DerivedDB:updated:${this.name}`, { data: documentsByIdByTopic });
-        }
-      }
-    } else {
-      throw new Error(`Unable to add new block`);
+    await this.syncStatus.setHighestSyncBlock(
+      this.dbName,
+      blocknumber,
+      syncing
+    );
+    this.updatingHighestSyncBlock = false;
+    if (logs.length > 0) {
+      this.augur.events.emit(`DerivedDB:updated:${this.name}`, { data: documentsByIdByTopic });
     }
 
     return blocknumber;
