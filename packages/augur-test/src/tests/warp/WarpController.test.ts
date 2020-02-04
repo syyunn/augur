@@ -4,7 +4,10 @@ import { API } from '@augurproject/sdk/build/state/getter/API';
 import { BulkSyncStrategy } from '@augurproject/sdk/build/state/sync/BulkSyncStrategy';
 import { WarpSyncStrategy } from '@augurproject/sdk/build/state/sync/WarpSyncStrategy';
 import { configureDexieForNode } from '@augurproject/sdk/build/state/utils/DexieIDBShim';
-import { WarpController } from '@augurproject/sdk/build/warp/WarpController';
+import {
+  databasesToSync,
+  WarpController,
+} from '@augurproject/sdk/build/warp/WarpController';
 import {
   ACCOUNTS,
   ContractAPI,
@@ -69,7 +72,7 @@ describe('WarpController', () => {
       db.logFilters.buildFilter,
       db.logFilters.onLogsAdded,
       john.augur.contractEvents.parseLogs,
-      50,
+      50
     );
 
     // partially populate db.
@@ -79,17 +82,17 @@ describe('WarpController', () => {
     // really be a problem that we are grabbing extra blocks.
     warpController = new WarpController(db, ipfs, provider, uploadBlockHeaders);
     firstCheckpointFileHash = await warpController.createAllCheckpoints(
-      await provider.getBlock(170),
+      await provider.getBlock(170)
     );
 
     await bulkSyncStrategy.start(170, await provider.getBlockNumber());
 
     secondCheckpointFileHash = await warpController.createAllCheckpoints(
-      newBlockHeaders,
+      newBlockHeaders
     );
 
     allMarketIds = (await db.MarketCreated.toArray()).map(
-      market => market.market,
+      market => market.market
     );
   });
 
@@ -99,12 +102,20 @@ describe('WarpController', () => {
 
   describe('queryDB', () => {
     test('limit blocks in query', async () => {
-      const result = await warpController.queryDB('TransferSingle',
-        ['to', 'from'], john.account.publicKey, 0, 175);
-      expect(result).not.toEqual(expect.arrayContaining([
-        expect.objectContaining({
-          blockNumber: '176',
-        })]));
+      const result = await warpController.queryDB(
+        'TransferSingle',
+        ['to', 'from'],
+        john.account.publicKey,
+        0,
+        175
+      );
+      expect(result).not.toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            blockNumber: '176',
+          }),
+        ])
+      );
     });
 
     test('filter by block range', async () => {
@@ -114,12 +125,12 @@ describe('WarpController', () => {
           ['market'],
           allMarketIds[0],
           uploadBlockHeaders.number,
-          newBlockHeaders.number,
-        ),
+          newBlockHeaders.number
+        )
       ).resolves.toEqual([
         expect.objectContaining({
           market: allMarketIds[0],
-        })
+        }),
       ]);
     });
   });
@@ -127,7 +138,7 @@ describe('WarpController', () => {
   describe('getCheckpointBlockRange', () => {
     test('should return the range', async () => {
       await expect(
-        db.warpCheckpoints.getCheckpointBlockRange(),
+        db.warpCheckpoints.getCheckpointBlockRange()
       ).resolves.toEqual([
         expect.objectContaining({
           number: 0,
@@ -144,26 +155,30 @@ describe('WarpController', () => {
       // Specific event type doesn't matter. Just need two logs that
       // will produce a range of blocks whose first and last will
       // contain said log.
-      const logs = await john.augur.contractEvents.getLogs('MarketCreated', uploadBlockHeaders.number, newBlockHeaders.number);
+      const logs = await john.augur.contractEvents.getLogs(
+        'MarketCreated',
+        uploadBlockHeaders.number,
+        newBlockHeaders.number
+      );
 
-      const targetBeginNumber = Math.min(...logs.map(item  => item.blockNumber));;
-      const targetEndNumber = Math.max(...logs.map(item  => item.blockNumber));;
-
+      const targetBeginNumber = Math.min(...logs.map(item => item.blockNumber));
+      const targetEndNumber = Math.max(...logs.map(item => item.blockNumber));
       const hash = await warpController.createCheckpoint(
         await provider.getBlock(targetBeginNumber),
-        await provider.getBlock(targetEndNumber),
+        await provider.getBlock(targetEndNumber)
       );
-      const result = (await ipfs.cat(`${hash.Hash}`)).toString().
-        split('\n').
-        filter(log => log).
-        map(log => {
+      const result = (await ipfs.cat(`${hash.Hash}`))
+        .toString()
+        .split('\n')
+        .filter(log => log)
+        .map(log => {
           try {
             return JSON.parse(log);
           } catch (e) {
             console.error(e, log);
           }
-        }).
-        map(item => item.blockNumber);
+        })
+        .map(item => item.blockNumber);
 
       expect(Math.min(...result)).toEqual(targetBeginNumber);
       expect(Math.max(...result)).toEqual(targetEndNumber);
@@ -173,7 +188,7 @@ describe('WarpController', () => {
   describe('getAvailableCheckpointsByHash method', () => {
     test('return array of checkpoints available', async () => {
       await expect(
-        warpController.getAvailableCheckpointsByHash(secondCheckpointFileHash),
+        warpController.getAvailableCheckpointsByHash(secondCheckpointFileHash)
       ).resolves.toEqual([0, 168, 176]);
     });
   });
@@ -228,7 +243,7 @@ describe('WarpController', () => {
 
     test('should create initial checkpoints', async () => {
       await expect(
-        ipfs.ls(`${secondCheckpointFileHash}/checkpoints/`),
+        ipfs.ls(`${secondCheckpointFileHash}/checkpoints/`)
       ).resolves.toEqual([
         expect.objectContaining({
           name: '0',
@@ -243,16 +258,16 @@ describe('WarpController', () => {
     });
 
     test('getCheckpointBlockRange', async () => {
-      await expect(db.warpCheckpoints.getCheckpointBlockRange()).
-        resolves.
-        toEqual([
-          expect.objectContaining({
-            number: 0,
-          }),
-          expect.objectContaining({
-            number: 177,
-          }),
-        ]);
+      await expect(
+        db.warpCheckpoints.getCheckpointBlockRange()
+      ).resolves.toEqual([
+        expect.objectContaining({
+          number: 0,
+        }),
+        expect.objectContaining({
+          number: 177,
+        }),
+      ]);
     });
   });
 
@@ -260,7 +275,7 @@ describe('WarpController', () => {
     describe('top-level directory', () => {
       test('should have a version file with the version number', async () => {
         await expect(
-          ipfs.cat(`${secondCheckpointFileHash}/VERSION`),
+          ipfs.cat(`${secondCheckpointFileHash}/VERSION`)
         ).resolves.toEqual(Buffer.from('1'));
       });
 
@@ -303,7 +318,7 @@ describe('WarpController', () => {
           });
 
           await expect(
-            ipfs.ls(`${secondCheckpointFileHash}/markets`),
+            ipfs.ls(`${secondCheckpointFileHash}/markets`)
           ).resolves.toEqual(
             expect.arrayContaining([
               ...allMarkets,
@@ -311,13 +326,13 @@ describe('WarpController', () => {
                 name: 'index',
                 type: 'file',
               }),
-            ]),
+            ])
           );
         });
 
         test('market file should have contents', async () => {
           const result = await ipfs.cat(
-            `${secondCheckpointFileHash}/markets/${allMarketIds[0]}`,
+            `${secondCheckpointFileHash}/markets/${allMarketIds[0]}`
           );
 
           expect(result.toString()).not.toEqual('');
@@ -325,7 +340,7 @@ describe('WarpController', () => {
 
         test('index file should have contents', async () => {
           const result = await ipfs.cat(
-            `${secondCheckpointFileHash}/markets/index`,
+            `${secondCheckpointFileHash}/markets/index`
           );
 
           expect(result.toString()).not.toEqual('');
@@ -335,7 +350,7 @@ describe('WarpController', () => {
       describe('account rollups', () => {
         test('should create files for each account', async () => {
           await expect(
-            ipfs.ls(`${secondCheckpointFileHash}/accounts/`),
+            ipfs.ls(`${secondCheckpointFileHash}/accounts/`)
           ).resolves.toEqual(
             expect.arrayContaining([
               expect.objectContaining({
@@ -346,7 +361,7 @@ describe('WarpController', () => {
                 name: 'index',
                 type: 'file',
               }),
-            ]),
+            ])
           );
         });
       });
@@ -357,12 +372,13 @@ describe('WarpController', () => {
     // This is a spot check.
     test('should have some logs', async () => {
       const marketCreated = await ipfs.cat(
-        `${secondCheckpointFileHash}/tables/MarketCreated/index`,
+        `${secondCheckpointFileHash}/tables/MarketCreated/index`
       );
-      const splitLogs = marketCreated.toString().
-        split('\n').
-        filter(log => log).
-        map(log => {
+      const splitLogs = marketCreated
+        .toString()
+        .split('\n')
+        .filter(log => log)
+        .map(log => {
           try {
             return JSON.parse(log);
           } catch (e) {
@@ -390,7 +406,7 @@ describe('WarpController', () => {
       fixture = await ContractAPI.userWrapper(
         ACCOUNTS[0],
         provider,
-        seed.addresses,
+        seed.addresses
       );
 
       fixtureDB = await mock.makeDB(fixture.augur, ACCOUNTS);
@@ -401,13 +417,13 @@ describe('WarpController', () => {
         fixtureDB.logFilters.buildFilter,
         fixtureDB.logFilters.onLogsAdded,
         fixture.augur.contractEvents.parseLogs,
-        1,
+        1
       );
 
       newJohn = await ContractAPI.userWrapper(
         ACCOUNTS[0],
         provider,
-        seed.addresses,
+        seed.addresses
       );
 
       newJohnDB = await mock.makeDB(newJohn.augur, ACCOUNTS);
@@ -415,25 +431,25 @@ describe('WarpController', () => {
         newJohnDB,
         ipfs,
         provider,
-        uploadBlockHeaders,
+        uploadBlockHeaders
       );
       newJohnApi = new API(newJohn.augur, Promise.resolve(newJohnDB));
       warpSyncStrategy = new WarpSyncStrategy(
         newJohnWarpController,
-        newJohnDB.logFilters.onLogsAdded,
+        newJohnDB.logFilters.onLogsAdded
       );
 
       newJohnWarpController = new WarpController(
         newJohnDB,
         ipfs,
         provider,
-        uploadBlockHeaders,
+        uploadBlockHeaders
       );
       newJohnApi = new API(newJohn.augur, Promise.resolve(newJohnDB));
 
       warpSyncStrategy = new WarpSyncStrategy(
         newJohnWarpController,
-        newJohnDB.logFilters.onLogsAdded,
+        newJohnDB.logFilters.onLogsAdded
       );
     });
 
@@ -442,7 +458,7 @@ describe('WarpController', () => {
         const marketId = allMarketIds[3];
         const blockNumber = await warpSyncStrategy.syncMarket(
           secondCheckpointFileHash,
-          marketId,
+          marketId
         );
 
         await fixtureBulkSyncStrategy.start(0, blockNumber);
@@ -457,45 +473,64 @@ describe('WarpController', () => {
         expect(newJohnMarketList).toEqual(fixtureMarketList);
       });
 
-      test('should load specific user data', async () => {
-        const marketId = allMarketIds[3];
-
-        await warpSyncStrategy.syncMarket(secondCheckpointFileHash, marketId);
+      test.skip('should load specific user data', async ()  => {
         const blockNumber = await warpSyncStrategy.syncAccount(
           secondCheckpointFileHash,
-          newJohn.account.publicKey,
+          newJohn.account.publicKey
         );
 
         await fixtureBulkSyncStrategy.start(0, blockNumber);
-        const fixtureUserAccountData = await fixtureApi.route('getUserAccountData', {
+        const fixtureUserAccountData = await fixtureApi.route(
+          'getUserAccountData',
+          {
+            universe: addresses.Universe,
+            account: john.account.publicKey,
+          }
+        );
+
+        const result = await newJohnApi.route('getUserAccountData', {
           universe: addresses.Universe,
-          account: john.account.publicKey,
+          account: newJohn.account.publicKey,
         });
 
-        await expect(
-          newJohnApi.route('getUserAccountData', {
-            universe: addresses.Universe,
-            account: newJohn.account.publicKey,
-          }),
-        ).resolves.toEqual(fixtureUserAccountData);
+        expect(result).toEqual(fixtureUserAccountData);
       });
     });
 
     describe('full sync', () => {
-      test('should populate market data', async () => {
-        // populate db.
-        const blockNumber = await warpSyncStrategy.start(secondCheckpointFileHash);
+      beforeEach(async () => {
+        const blockNumber = await warpSyncStrategy.start(
+          secondCheckpointFileHash
+        );
 
         await fixtureBulkSyncStrategy.start(0, blockNumber);
+      });
+
+      test('compare contents of databases', async () => {
+        const fixtureLogs = {};
+        const newJohnLogs = {};
+
+        // Doing this as one test for speed. Would be prettier to do it as many.
+        for (let i = 0; i < databasesToSync.length; i++) {
+          const { databaseName } = databasesToSync[i];
+
+          fixtureLogs[databaseName] = await fixtureDB[databaseName].toArray();
+          newJohnLogs[databaseName] = await newJohnDB[databaseName].toArray();
+        }
+
+        expect(newJohnLogs).toEqual(fixtureLogs);
+      });
+
+      test('should populate market data', async () => {
         const fixtureMarketList = await fixtureApi.route('getMarkets', {
           universe: addresses.Universe,
         });
 
-        await expect(
-          newJohnApi.route('getMarkets', {
-            universe: addresses.Universe,
-          }),
-        ).resolves.toEqual(fixtureMarketList);
+        const result = await newJohnApi.route('getMarkets', {
+          universe: addresses.Universe,
+        });
+
+        expect(result).toEqual(fixtureMarketList);
       });
     });
 
@@ -506,7 +541,7 @@ describe('WarpController', () => {
 
         // This should populate the checkpoints DB.
         await newJohnWarpController.createAllCheckpoints(
-          firstCheckpointBlockHeaders,
+          firstCheckpointBlockHeaders
         );
 
         await fixtureBulkSyncStrategy.start(0, blockNumber);
@@ -518,23 +553,24 @@ describe('WarpController', () => {
         await expect(
           newJohnApi.route('getMarkets', {
             universe: addresses.Universe,
-          }),
+          })
         ).resolves.toEqual(fixtureMarketList);
 
         // populate db. Admittedly this just proves the logs were loaded.
-        blockNumber = await warpSyncStrategy.start(
-          secondCheckpointFileHash,
-        );
+        blockNumber = await warpSyncStrategy.start(secondCheckpointFileHash);
 
         await fixtureBulkSyncStrategy.start(0, blockNumber);
-        const rolledbackFixtureMarketList = await fixtureApi.route('getMarkets', {
-          universe: addresses.Universe,
-        });
+        const rolledbackFixtureMarketList = await fixtureApi.route(
+          'getMarkets',
+          {
+            universe: addresses.Universe,
+          }
+        );
 
         await expect(
           newJohnApi.route('getMarkets', {
             universe: addresses.Universe,
-          }),
+          })
         ).resolves.toEqual(rolledbackFixtureMarketList);
       });
     });
@@ -542,19 +578,19 @@ describe('WarpController', () => {
   describe('pinning ui', () => {
     test.skip('valid hash', async () => {
       await warpController.pinHashByGatewayUrl(
-        'https://cloudflare-ipfs.com/ipfs/QmXnnyufdzAWL5CqZ2RnSNgPbvCc1ALT73s6epPrRnZ1Xy',
+        'https://cloudflare-ipfs.com/ipfs/QmXnnyufdzAWL5CqZ2RnSNgPbvCc1ALT73s6epPrRnZ1Xy'
       );
       await expect(ipfs.pin.ls()).resolves.toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             hash: 'QmXnnyufdzAWL5CqZ2RnSNgPbvCc1ALT73s6epPrRnZ1Xy',
           }),
-        ]),
+        ])
       );
     });
     test('invalid hash', async () => {
       await warpController.pinHashByGatewayUrl(
-        'https://cloudflare-ipfs.com/ipfs/QQakF4QZQ9CYciRmcYA56kisvnEFHZRThzKBAzF5MXw6zv',
+        'https://cloudflare-ipfs.com/ipfs/QQakF4QZQ9CYciRmcYA56kisvnEFHZRThzKBAzF5MXw6zv'
       );
       await expect(ipfs.pin.ls()).resolves.not.toEqual([
         expect.arrayContaining([

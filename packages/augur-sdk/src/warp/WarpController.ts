@@ -23,11 +23,24 @@ type AllDbs = {
 
 // Assuming indexes we need are simple ones e.g. 'market'.
 // Will need to rethink this for something like '[universe+reporter]'.
-type DbExpander<P> = P extends keyof AllDbs
-  ? { databaseName: P; target?: keyof AllDbs; indexes?: Array<keyof AllDbs[P]> }
+type DbExpander<P, G extends keyof AllDbs> = P extends keyof AllDbs
+  ? {
+      databaseName: P;
+      indexes?: Readonly<Array<keyof AllDbs[P]>>;
+      join?: G extends keyof AllDbs
+        ? Readonly<{
+            // Indexes to query source db on.
+            indexes: Readonly<Array<keyof AllDbs[G]>>;
+            // The common index between the two DBs.
+            on: Readonly<Array<keyof AllDbs[P] & keyof AllDbs[G]>>;
+            // The left side is the databaseName above. It will be what we filter. E.g. account address.
+            source: G;
+          }>
+        : never;
+    }
   : never;
-type Db = DbExpander<keyof AllDbs>;
-type RollupDescription = Readonly<Db[]>;
+type Db = DbExpander<keyof AllDbs, keyof AllDbs>;
+export type RollupDescription = Readonly<Db[]>;
 
 interface IPFSObject {
   Hash: string;
@@ -35,7 +48,7 @@ interface IPFSObject {
   Size: number;
 }
 
-const databasesToSync: RollupDescription = [
+export const databasesToSync: RollupDescription = [
   { databaseName: 'CompleteSetsPurchased' },
   { databaseName: 'CompleteSetsSold' },
   { databaseName: 'DisputeCrowdsourcerContribution' },
@@ -420,11 +433,23 @@ export class WarpController {
         indexes: ['account'],
       },
       {
-        databaseName: 'ParsedOrderEvent',
-        target: 'OrderEvent',
-        indexes: ['orderCreator'],
+        databaseName: 'OrderEvent',
+        join: {
+          indexes: ['orderCreator'],
+          on: ['blockNumber', 'logIndex'],
+          source: 'ParsedOrderEvent',
+        },
       },
-    ];
+      {
+        databaseName: 'MarketCreated',
+        indexes: [],
+        join: {
+          indexes: ['orderCreator'],
+          on: ['market'],
+          source: 'ParsedOrderEvent',
+        },
+      },
+    ] as const;
 
     // @todo figure out if this is the best way to find all accounts.
     const result = _.uniq(
@@ -440,25 +465,25 @@ export class WarpController {
     return results[1];
   }
 
-  queryDB = async (
-    dbName: AllDBNames,
-    properties: string[] = [],
+  queryDB = <P extends AllDBNames>(
+    dbName: P,
+    properties: Readonly<string[]> = [],
     criteria: Address,
     startBlockNumber = 0,
     endBlockNumber?: number
-  ) => {
-    const query = await this.db[dbName]
+  ): Dexie.Promise<Array<AllDbs[P]>> => {
+    // I really hate that I have to do this.
+    // @ts-ignore
+    return this.db[dbName]
       .where('blockNumber')
-      .between(startBlockNumber, endBlockNumber, true, true);
-
-    query.and(item => properties.some(property => item[property] === criteria));
-
-    return query.toArray();
+      .between(startBlockNumber, endBlockNumber, true, true)
+      .and(item => properties.some(property => item[property] === criteria))
+      .toArray();
   };
 
   queryDBWithAddRow = async (
     dbName: AllDBNames,
-    properties: string[] = [],
+    properties: Readonly<string[]> = [],
     criteria: Address,
     startBlockNumber = 0,
     endBlockNumber?: number
@@ -486,24 +511,31 @@ export class WarpController {
         const items = _.flatten(
           await Promise.all(
             rollupDescriptions.map(async r => {
-              if (r.target) {
-                // This exists if we need to lookup logs using a non-generic db.
+              if (r.join) {
+                // This exists if we need to lookup logs using another db.
+                const { indexes, source, on } = r.join;
 
                 const logs = await this.queryDB(
-                  r.databaseName,
-                  r.indexes,
+                  source,
+                  indexes,
                   id,
                   startBlockNumber,
                   endBlockNumber
-                ) as unknown as Log[];
+                );
 
                 // Types are fun!
-                const conditions = logs.map(log => [log.blockNumber, log.logIndex]) as unknown as void[][];
-                const rows = await this.db[r.target]
-                  .where('[blockNumber+logIndex]')
+                const conditions = (logs.map(log => {
+                  const result = [];
+                  for (let i = 0; i < on.length; i++) {
+                    result.push(log[on[i]]);
+                  }
+                  return result
+                }) as unknown) as void[][];
+                const rows = await this.db[r.databaseName]
+                  .where(on.length > 1 ? `[${on.join('+')}]` : on.slice()[0])
                   .anyOf(conditions)
                   .toArray();
-                
+
                 return this.ipfsAddRows(rows);
               } else {
                 return this.queryDBWithAddRow(
