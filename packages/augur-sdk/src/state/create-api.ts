@@ -80,6 +80,8 @@ export function buildSyncStrategies(client:Augur, db:Promise<DB>, provider: Ethe
     const endBulkSyncBlockNumberHeader = await provider.getBlock(endBulkSyncBlockNumber);
     warpController.createAllCheckpoints(endBulkSyncBlockNumberHeader);
 
+    blockAndLogStreamerSyncStrategy.listenForBlockRemoved(logFilterAggregator.onBlockRemoved);
+
     // Check on each new block to see if we need to generate a checkpoint.
     client.events.on(SubscriptionEventName.NewBlock, warpController.onNewBlock);
     blockAndLogStreamerSyncStrategy.start(endBulkSyncBlockNumber);

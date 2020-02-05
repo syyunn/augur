@@ -33,6 +33,8 @@ export interface LogFilterAggregatorDepsInterface {
   getEventContractAddress: (eventName: string) => string;
 }
 
+type BlockRemovalCallback = (blockNumber:number) => void;
+
 export interface LogFilterAggregatorInterface {
   allLogsCallbackMetaData: LogCallbackType[];
   notifyNewBlockAfterLogsProcessMetadata: LogCallbackType[];
@@ -53,12 +55,16 @@ export interface LogFilterAggregatorInterface {
     onLogsAdded: LogCallbackType,
     onLogsRemoved?: LogCallbackType
   ): void;
+
+  onBlockRemoved(blockNumber: number):void
+  listenForBlockRemoved(onBlockRemoved: BlockRemovalCallback):void
 }
 
 export class LogFilterAggregator implements LogFilterAggregatorInterface {
   allLogsCallbackMetaData: LogCallbackType[] = [];
   notifyNewBlockAfterLogsProcessMetadata: LogCallbackType[] = [];
   logCallbackMetaData: LogCallbackMetaData[] = [];
+  blockRemovalCallback: BlockRemovalCallback[] = [];
 
   constructor(private deps: LogFilterAggregatorDepsInterface) {}
 
@@ -181,6 +187,16 @@ export class LogFilterAggregator implements LogFilterAggregatorInterface {
         });
       }
     );
+  }
+
+  async onBlockRemoved(blockNumber:number):Promise<void> {
+    for (let i = 0; i < this.blockRemovalCallback.length; i++) {
+      await this.blockRemovalCallback[i](blockNumber);
+    }
+  }
+
+  listenForBlockRemoved(onBlockRemoved: (blockNumber:number) => void):void {
+    this.blockRemovalCallback.push(onBlockRemoved);
   }
 
   private filterCallbackByContractAddressAndTopic(

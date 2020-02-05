@@ -23,9 +23,9 @@ export class Controller {
     this.events = new Subscriptions(augur.events);
     this.logFilterAggregator.listenForAllEvents(this.updateMarketsData);
     this.logFilterAggregator.notifyNewBlockAfterLogsProcess(this.notifyNewBlockEvent.bind(this));
-    // this.logFilterAggregator.listenForBlockRemoved(
-    //   db.rollback.bind(db)
-    // );
+    this.logFilterAggregator.listenForBlockRemoved(
+      db.rollback.bind(db)
+    );
   }
 
   private updateMarketsData = async (blockNumber: number, allLogs: ParsedLog[]) => {
