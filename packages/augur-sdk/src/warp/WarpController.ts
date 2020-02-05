@@ -25,19 +25,20 @@ type AllDbs = {
 // Will need to rethink this for something like '[universe+reporter]'.
 type DbExpander<P, G extends keyof AllDbs> = P extends keyof AllDbs
   ? {
-      databaseName: P;
-      indexes?: Readonly<Array<keyof AllDbs[P]>>;
-      join?: G extends keyof AllDbs
-        ? Readonly<{
-            // Indexes to query source db on.
-            indexes: Readonly<Array<keyof AllDbs[G]>>;
-            // The common index between the two DBs.
-            on: Readonly<Array<keyof AllDbs[P] & keyof AllDbs[G]>>;
-            // The left side is the databaseName above. It will be what we filter. E.g. account address.
-            source: G;
-          }>
-        : never;
-    }
+    databaseName: P;
+    indexes?: Readonly<Array<keyof AllDbs[P]>>;
+    join?: G extends keyof AllDbs
+      ? Readonly<{
+        // Indexes to query source db on.
+        indexes: Readonly<Array<keyof AllDbs[G]>>;
+        // The common index between the two DBs.
+        // length 2 or more is treated
+        on: Readonly<Array<keyof AllDbs[P] & keyof AllDbs[G]>>;
+        // This is the source of the criteria to filter the `dataBaseName` db with.
+        source: G;
+      }>
+      : never;
+  }
   : never;
 type Db = DbExpander<keyof AllDbs, keyof AllDbs>;
 export type RollupDescription = Readonly<Db[]>;
@@ -99,7 +100,7 @@ export class WarpController {
     private db: DB,
     private ipfs: IPFS,
     provider: Provider,
-    private uploadBlockNumber: Block
+    private uploadBlockNumber: Block,
   ) {
     this.checkpoints = new Checkpoints(provider);
   }
@@ -114,6 +115,7 @@ export class WarpController {
     }
 
     // Presumably we would report here.
+
     this.createAllCheckpoints(newBlock);
   };
 
@@ -135,7 +137,7 @@ export class WarpController {
     ] = await this.db.warpCheckpoints.getCheckpointBlockRange();
 
     const topLevelDirectory = new DAGNode(
-      Unixfs.default('directory').marshal()
+      Unixfs.default('directory').marshal(),
     );
     const versionFile = await this.ipfs.add({
       content: Buffer.from(WARPSYNC_VERSION),
@@ -149,32 +151,31 @@ export class WarpController {
     topLevelDirectory.addLink(
       await this.buildDirectory(
         'accounts',
-        await this.createAccountRollups(begin.number, end.number)
-      )
+        await this.createAccountRollups(begin.number, end.number),
+      ),
     );
 
     topLevelDirectory.addLink(
       await this.buildDirectory(
         'checkpoints',
-        await this.db.warpCheckpoints.getAllIPFSObjects()
-      )
+        await this.db.warpCheckpoints.getAllIPFSObjects(),
+      ),
     );
 
     topLevelDirectory.addLink(
       await this.buildDirectory(
         'markets',
-        await this.createMarketRollups(begin.number, end.number)
-      )
+        await this.createMarketRollups(begin.number, end.number),
+      ),
     );
 
     let indexFileLinks = [];
     const tableNode = new DAGNode(Unixfs.default('directory').marshal());
     for (const { databaseName } of databasesToSync) {
       const [links, r] = await this.addDBToIPFS(
-        this.db[databaseName]
-          .where('blockNumber')
-          .between(begin.number, end.number, true, true),
-        databaseName
+        this.db[databaseName].where('blockNumber').
+          between(begin.number, end.number, true, true),
+        databaseName,
       );
       indexFileLinks = [...indexFileLinks, ...links];
       tableNode.addLink(r);
@@ -184,7 +185,7 @@ export class WarpController {
       Name: 'tables',
       Hash: await this.ipfs.dag.put(
         tableNode,
-        WarpController.DEFAULT_NODE_TYPE
+        WarpController.DEFAULT_NODE_TYPE,
       ),
       Size: 0,
     });
@@ -201,7 +202,7 @@ export class WarpController {
 
     const indexFileResponse = await this.ipfs.dag.put(
       indexFile,
-      WarpController.DEFAULT_NODE_TYPE
+      WarpController.DEFAULT_NODE_TYPE,
     );
     topLevelDirectory.addLink({
       Name: 'index',
@@ -211,7 +212,7 @@ export class WarpController {
 
     const d = await this.ipfs.dag.put(
       topLevelDirectory,
-      WarpController.DEFAULT_NODE_TYPE
+      WarpController.DEFAULT_NODE_TYPE,
     );
 
     console.log('checkpoint', d.toString());
@@ -220,7 +221,7 @@ export class WarpController {
 
   async addDBToIPFS(
     table: Pick<Dexie.Table<any, any>, 'toArray'>,
-    name: string
+    name: string,
   ): Promise<[IPFSObject[], IPFSObject]> {
     const results = await this.ipfsAddRows(await table.toArray());
 
@@ -238,7 +239,7 @@ export class WarpController {
 
     const indexFileResponse = await this.ipfs.dag.put(
       indexFile,
-      WarpController.DEFAULT_NODE_TYPE
+      WarpController.DEFAULT_NODE_TYPE,
     );
 
     const directory = Unixfs.default('directory');
@@ -264,7 +265,7 @@ export class WarpController {
 
     const q = await this.ipfs.dag.put(
       directoryNode,
-      WarpController.DEFAULT_NODE_TYPE
+      WarpController.DEFAULT_NODE_TYPE,
     );
     return [
       links,
@@ -292,7 +293,7 @@ export class WarpController {
 
     const q = await this.ipfs.dag.put(
       directoryNode,
-      WarpController.DEFAULT_NODE_TYPE
+      WarpController.DEFAULT_NODE_TYPE,
     );
 
     return {
@@ -320,7 +321,7 @@ export class WarpController {
 
   async createMarketRollups(
     startBlockNumber?: number,
-    endBlockNumber?: number
+    endBlockNumber?: number,
   ) {
     const dbNamesToSync: RollupDescription = [
       { databaseName: 'MarketCreated', indexes: ['market'] },
@@ -336,14 +337,14 @@ export class WarpController {
     ];
 
     const result = (await this.db.MarketCreated.toArray()).map(
-      ({ market }) => market
+      ({ market }) => market,
     );
 
     const results = await this.createRollup(
       dbNamesToSync,
       result,
       startBlockNumber,
-      endBlockNumber
+      endBlockNumber,
     );
     return results[1];
   }
@@ -353,10 +354,9 @@ export class WarpController {
     for (const { databaseName } of databasesToSync) {
       const table = this.db[databaseName];
       const [links, r] = await this.addDBToIPFS(
-        table
-          .where('blockNumber')
-          .between(begin.number, end.number, true, true),
-        databaseName
+        table.where('blockNumber').
+          between(begin.number, end.number, true, true),
+        databaseName,
       );
       indexFileLinks = [...indexFileLinks, ...links];
     }
@@ -373,7 +373,7 @@ export class WarpController {
 
     const indexFileResponse = await this.ipfs.dag.put(
       indexFile,
-      WarpController.DEFAULT_NODE_TYPE
+      WarpController.DEFAULT_NODE_TYPE,
     );
 
     return {
@@ -390,18 +390,18 @@ export class WarpController {
       newEndBlock,
     ] = await this.checkpoints.calculateBoundary(
       mostRecentCheckpoint.begin,
-      end
+      end,
     );
 
     // This is where we actually create the checkpoint.
     const checkPointIPFSObject = await this.createCheckpoint(
       mostRecentCheckpoint.begin,
-      newBeginBlock
+      newBeginBlock,
     );
     await this.db.warpCheckpoints.createCheckpoint(
       newBeginBlock,
       newEndBlock,
-      checkPointIPFSObject
+      checkPointIPFSObject,
     );
 
     if (this.checkpoints.isSameDay(newEndBlock, end)) {
@@ -413,7 +413,7 @@ export class WarpController {
 
   async createAccountRollups(
     startBlockNumber?: number,
-    endBlockNumber?: number
+    endBlockNumber?: number,
   ) {
     const dbNamesToSync: RollupDescription = [
       {
@@ -453,14 +453,14 @@ export class WarpController {
 
     // @todo figure out if this is the best way to find all accounts.
     const result = _.uniq(
-      (await this.db.ProfitLossChanged.toArray()).map(({ account }) => account)
+      (await this.db.ProfitLossChanged.toArray()).map(({ account }) => account),
     );
 
     const results = await this.createRollup(
       dbNamesToSync,
       result,
       startBlockNumber,
-      endBlockNumber
+      endBlockNumber,
     );
     return results[1];
   }
@@ -470,15 +470,14 @@ export class WarpController {
     properties: Readonly<string[]> = [],
     criteria: Address,
     startBlockNumber = 0,
-    endBlockNumber?: number
+    endBlockNumber?: number,
   ): Dexie.Promise<Array<AllDbs[P]>> => {
     // I really hate that I have to do this.
     // @ts-ignore
-    return this.db[dbName]
-      .where('blockNumber')
-      .between(startBlockNumber, endBlockNumber, true, true)
-      .and(item => properties.some(property => item[property] === criteria))
-      .toArray();
+    return this.db[dbName].where('blockNumber').
+      between(startBlockNumber, endBlockNumber, true, true).
+      and(item => properties.some(property => item[property] === criteria)).
+      toArray();
   };
 
   queryDBWithAddRow = async (
@@ -486,14 +485,14 @@ export class WarpController {
     properties: Readonly<string[]> = [],
     criteria: Address,
     startBlockNumber = 0,
-    endBlockNumber?: number
+    endBlockNumber?: number,
   ) => {
     const logs = await this.queryDB(
       dbName,
       properties,
       criteria,
       startBlockNumber,
-      endBlockNumber
+      endBlockNumber,
     );
 
     return this.ipfsAddRows(logs);
@@ -503,7 +502,7 @@ export class WarpController {
     rollupDescriptions: RollupDescription,
     ids: Address[],
     startBlockNumber?: number,
-    endBlockNumber?: number
+    endBlockNumber?: number,
   ) {
     const resultPromises = ids.map(
       async (id): Promise<[IPFSObject[], IPFSObject[]]> => {
@@ -520,7 +519,7 @@ export class WarpController {
                   indexes,
                   id,
                   startBlockNumber,
-                  endBlockNumber
+                  endBlockNumber,
                 );
 
                 // Types are fun!
@@ -529,12 +528,12 @@ export class WarpController {
                   for (let i = 0; i < on.length; i++) {
                     result.push(log[on[i]]);
                   }
-                  return result
+                  return result.length === 1 ? result[0] : result;
                 }) as unknown) as void[][];
-                const rows = await this.db[r.databaseName]
-                  .where(on.length > 1 ? `[${on.join('+')}]` : on.slice()[0])
-                  .anyOf(conditions)
-                  .toArray();
+                const rows = await this.db[r.databaseName].where(
+                  on.length > 1 ? `[${on.join('+')}]` : `${on.slice()[0]}`).
+                  anyOf(conditions).
+                  toArray();
 
                 return this.ipfsAddRows(rows);
               } else {
@@ -543,11 +542,11 @@ export class WarpController {
                   r.indexes,
                   id,
                   startBlockNumber,
-                  endBlockNumber
+                  endBlockNumber,
                 );
               }
-            })
-          )
+            }),
+          ),
         );
 
         const file = Unixfs.default('file');
@@ -563,7 +562,7 @@ export class WarpController {
 
         const indexFileResponse = await this.ipfs.dag.put(
           indexFile,
-          WarpController.DEFAULT_NODE_TYPE
+          WarpController.DEFAULT_NODE_TYPE,
         );
 
         return [
@@ -576,7 +575,7 @@ export class WarpController {
             },
           ],
         ];
-      }
+      },
     );
 
     const result = await Promise.all(resultPromises);
@@ -584,7 +583,7 @@ export class WarpController {
       (acc, item) => {
         return [[...acc[0], ...item[0]], [...acc[1], ...item[1]]];
       },
-      [[], []]
+      [[], []],
     );
 
     const file = Unixfs.default('file');
@@ -599,7 +598,7 @@ export class WarpController {
 
     const indexFileResponse = await this.ipfs.dag.put(
       indexFile,
-      WarpController.DEFAULT_NODE_TYPE
+      WarpController.DEFAULT_NODE_TYPE,
     );
 
     return [
@@ -626,7 +625,7 @@ export class WarpController {
 
   async getCheckpointFile(
     ipfsRootHash: string,
-    checkpointBlockNumber: string | number
+    checkpointBlockNumber: string | number,
   ) {
     return this.getFile(`${ipfsRootHash}/checkpoints/${checkpointBlockNumber}`);
   }
