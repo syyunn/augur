@@ -9,45 +9,6 @@ export class WarpSyncStrategy {
     protected onLogsAdded: (blockNumber: number, logs: Log[]) => Promise<void>
   ) {}
 
-  async syncMarket(ipfsRootHash?: string, marketId?: Address) {
-    // No hash, nothing to do!
-    if (!ipfsRootHash) return undefined;
-
-    // No marketId, nothing to do!
-    if (!marketId) return undefined;
-
-    const marketLogs = await this.warpSyncController.getFile(
-      `${ipfsRootHash}/markets/${marketId}`
-    );
-
-    return this.processFile(marketLogs);
-  }
-
-  async syncMarkets(ipfsRootHash?: string) {
-    // No hash, nothing to do!
-    if (!ipfsRootHash) return undefined;
-
-    const marketLogs = await this.warpSyncController.getFile(
-      `${ipfsRootHash}/markets/index`
-    );
-
-    return this.processFile(marketLogs);
-  }
-
-  async syncAccount(ipfsRootHash?: string, account?: Address) {
-    // No hash, nothing to do!
-    if (!ipfsRootHash) return undefined;
-
-    // No account, nothing to do!
-    if (!account) return undefined;
-
-    const accountRollup = await this.warpSyncController.getFile(
-      `${ipfsRootHash}/accounts/${account}`
-    );
-
-    return this.processFile(accountRollup);
-  }
-
   async pinHashByGatewayUrl(url: string) {
     return this.warpSyncController.pinHashByGatewayUrl(url);
   }

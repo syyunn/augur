@@ -150,22 +150,8 @@ export class WarpController {
 
     topLevelDirectory.addLink(
       await this.buildDirectory(
-        'accounts',
-        await this.createAccountRollups(begin.number, end.number),
-      ),
-    );
-
-    topLevelDirectory.addLink(
-      await this.buildDirectory(
         'checkpoints',
         await this.db.warpCheckpoints.getAllIPFSObjects(),
-      ),
-    );
-
-    topLevelDirectory.addLink(
-      await this.buildDirectory(
-        'markets',
-        await this.createMarketRollups(begin.number, end.number),
       ),
     );
 
@@ -319,36 +305,6 @@ export class WarpController {
     }));
   }
 
-  async createMarketRollups(
-    startBlockNumber?: number,
-    endBlockNumber?: number,
-  ) {
-    const dbNamesToSync: RollupDescription = [
-      { databaseName: 'MarketCreated', indexes: ['market'] },
-      { databaseName: 'MarketVolumeChanged', indexes: ['market'] },
-      { databaseName: 'MarketOIChanged', indexes: ['market'] },
-      { databaseName: 'InitialReportSubmitted', indexes: ['market'] },
-      { databaseName: 'DisputeCrowdsourcerCompleted', indexes: ['market'] },
-      { databaseName: 'MarketFinalized', indexes: ['market'] },
-      { databaseName: 'MarketParticipantsDisavowed', indexes: ['market'] },
-      { databaseName: 'MarketMigrated', indexes: ['market'] },
-      { databaseName: 'OrderEvent', indexes: ['market'] },
-      { databaseName: 'ProfitLossChanged', indexes: ['market'] },
-    ];
-
-    const result = (await this.db.MarketCreated.toArray()).map(
-      ({ market }) => market,
-    );
-
-    const results = await this.createRollup(
-      dbNamesToSync,
-      result,
-      startBlockNumber,
-      endBlockNumber,
-    );
-    return results[1];
-  }
-
   async createCheckpoint(begin: Block, end: Block) {
     let indexFileLinks = [];
     for (const { databaseName } of databasesToSync) {
@@ -409,60 +365,6 @@ export class WarpController {
     } else {
       return this.createCheckpoints(end);
     }
-  }
-
-  async createAccountRollups(
-    startBlockNumber?: number,
-    endBlockNumber?: number,
-  ) {
-    const dbNamesToSync: RollupDescription = [
-      {
-        databaseName: 'TransferBatch',
-        indexes: ['to', 'from'],
-      },
-      {
-        databaseName: 'TransferSingle',
-        indexes: ['from', 'to'],
-      },
-      {
-        databaseName: 'ShareTokenBalanceChanged',
-        indexes: ['account'],
-      },
-      {
-        databaseName: 'ProfitLossChanged',
-        indexes: ['account'],
-      },
-      {
-        databaseName: 'OrderEvent',
-        join: {
-          indexes: ['orderCreator'],
-          on: ['blockNumber', 'logIndex'],
-          source: 'ParsedOrderEvent',
-        },
-      },
-      {
-        databaseName: 'MarketCreated',
-        indexes: [],
-        join: {
-          indexes: ['orderCreator'],
-          on: ['market'],
-          source: 'ParsedOrderEvent',
-        },
-      },
-    ] as const;
-
-    // @todo figure out if this is the best way to find all accounts.
-    const result = _.uniq(
-      (await this.db.ProfitLossChanged.toArray()).map(({ account }) => account),
-    );
-
-    const results = await this.createRollup(
-      dbNamesToSync,
-      result,
-      startBlockNumber,
-      endBlockNumber,
-    );
-    return results[1];
   }
 
   queryDB = <P extends AllDBNames>(

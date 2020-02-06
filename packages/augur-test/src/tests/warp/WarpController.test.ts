@@ -286,10 +286,6 @@ describe('WarpController', () => {
             type: 'file',
           }),
           expect.objectContaining({
-            name: 'accounts',
-            type: 'dir',
-          }),
-          expect.objectContaining({
             name: 'checkpoints',
             type: 'dir',
           }),
@@ -298,72 +294,10 @@ describe('WarpController', () => {
             type: 'file',
           }),
           expect.objectContaining({
-            name: 'markets',
-            type: 'dir',
-          }),
-          expect.objectContaining({
             name: 'tables',
             type: 'dir',
           }),
         ]);
-      });
-
-      describe('market rollup', () => {
-        test('should create an item for all the markets', async () => {
-          const allMarkets = allMarketIds.map(market => {
-            return expect.objectContaining({
-              name: market,
-              type: 'file',
-            });
-          });
-
-          await expect(
-            ipfs.ls(`${secondCheckpointFileHash}/markets`)
-          ).resolves.toEqual(
-            expect.arrayContaining([
-              ...allMarkets,
-              expect.objectContaining({
-                name: 'index',
-                type: 'file',
-              }),
-            ])
-          );
-        });
-
-        test('market file should have contents', async () => {
-          const result = await ipfs.cat(
-            `${secondCheckpointFileHash}/markets/${allMarketIds[0]}`
-          );
-
-          expect(result.toString()).not.toEqual('');
-        });
-
-        test('index file should have contents', async () => {
-          const result = await ipfs.cat(
-            `${secondCheckpointFileHash}/markets/index`
-          );
-
-          expect(result.toString()).not.toEqual('');
-        });
-      });
-
-      describe('account rollups', () => {
-        test('should create files for each account', async () => {
-          await expect(
-            ipfs.ls(`${secondCheckpointFileHash}/accounts/`)
-          ).resolves.toEqual(
-            expect.arrayContaining([
-              expect.objectContaining({
-                name: john.account.publicKey,
-                type: 'file',
-              }),
-              expect.objectContaining({
-                name: 'index',
-                type: 'file',
-              }),
-            ])
-          );
-        });
       });
     });
   });
@@ -451,50 +385,6 @@ describe('WarpController', () => {
         newJohnWarpController,
         newJohnDB.logFilters.onLogsAdded
       );
-    });
-
-    describe('partial sync', () => {
-      test('should load specific market data', async () => {
-        const marketId = allMarketIds[3];
-        const blockNumber = await warpSyncStrategy.syncMarket(
-          secondCheckpointFileHash,
-          marketId
-        );
-
-        await fixtureBulkSyncStrategy.start(0, blockNumber);
-        const fixtureMarketList = await fixtureApi.route('getMarketsInfo', {
-          marketIds: [marketId],
-        });
-
-        const newJohnMarketList = await newJohnApi.route('getMarketsInfo', {
-          marketIds: [marketId],
-        });
-
-        expect(newJohnMarketList).toEqual(fixtureMarketList);
-      });
-
-      test.skip('should load specific user data', async ()  => {
-        const blockNumber = await warpSyncStrategy.syncAccount(
-          secondCheckpointFileHash,
-          newJohn.account.publicKey
-        );
-
-        await fixtureBulkSyncStrategy.start(0, blockNumber);
-        const fixtureUserAccountData = await fixtureApi.route(
-          'getUserAccountData',
-          {
-            universe: addresses.Universe,
-            account: john.account.publicKey,
-          }
-        );
-
-        const result = await newJohnApi.route('getUserAccountData', {
-          universe: addresses.Universe,
-          account: newJohn.account.publicKey,
-        });
-
-        expect(result).toEqual(fixtureUserAccountData);
-      });
     });
 
     describe('full sync', () => {
