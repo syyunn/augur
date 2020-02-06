@@ -65,6 +65,7 @@ describe('State API :: General', () => {
     beforeAll(async () => {
       const johnConnector = new Connectors.DirectConnector();
       const johnGnosis = new MockGnosisRelayAPI();
+      const johnBrowserMesh = new MockBrowserMesh(meshClient);
       john = await ContractAPI.userWrapper(
         ACCOUNTS[0],
         provider,
@@ -72,7 +73,7 @@ describe('State API :: General', () => {
         johnConnector,
         johnGnosis,
         meshClient,
-        meshBrowser
+        johnBrowserMesh
       );
       expect(john).toBeDefined();
 
@@ -84,6 +85,7 @@ describe('State API :: General', () => {
 
       const maryConnector = new Connectors.DirectConnector();
       const maryGnosis = new MockGnosisRelayAPI();
+      const maryBrowserMesh = new MockBrowserMesh(meshClient);
       mary = await ContractAPI.userWrapper(
         ACCOUNTS[1],
         provider,
@@ -91,13 +93,16 @@ describe('State API :: General', () => {
         maryConnector,
         maryGnosis,
         meshClient,
-        meshBrowser
+        maryBrowserMesh
       );
       maryGnosis.initialize(mary);
       maryDB = mock.makeDB(mary.augur, ACCOUNTS);
       maryConnector.initialize(mary.augur, await maryDB);
       maryAPI = new API(mary.augur, maryDB);
       await mary.approveCentralAuthority();
+
+      maryBrowserMesh.addOtherBrowserMeshToMockNetwork(johnBrowserMesh);
+      johnBrowserMesh.addOtherBrowserMeshToMockNetwork(maryBrowserMesh);
     });
     test('State API :: Market :: getMarkets', async () => {
       let marketList: MarketList;

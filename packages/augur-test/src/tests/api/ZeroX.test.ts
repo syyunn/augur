@@ -48,7 +48,8 @@ describe('Augur API :: ZeroX :: ', () => {
     beforeAll(async () => {
       const johnConnector = new Connectors.DirectConnector();
       const johnGnosis = new MockGnosisRelayAPI();
-      john = await ContractAPI.userWrapper(ACCOUNTS[0], provider, addresses, johnConnector, johnGnosis, meshClient, new MockBrowserMesh(meshClient));
+      const johnBrowserMesh = new MockBrowserMesh(meshClient);
+      john = await ContractAPI.userWrapper(ACCOUNTS[0], provider, addresses, johnConnector, johnGnosis, meshClient, johnBrowserMesh);
       expect(john).toBeDefined();
       johnGnosis.initialize(john);
       johnDB = mock.makeDB(john.augur, ACCOUNTS);
@@ -58,12 +59,16 @@ describe('Augur API :: ZeroX :: ', () => {
 
       const maryConnector = new Connectors.DirectConnector();
       const maryGnosis = new MockGnosisRelayAPI();
-      mary = await ContractAPI.userWrapper(ACCOUNTS[1], provider, addresses, maryConnector, maryGnosis, meshClient, new MockBrowserMesh(meshClient));
+      const maryBrowserMesh = new MockBrowserMesh(meshClient);
+      mary = await ContractAPI.userWrapper(ACCOUNTS[1], provider, addresses, maryConnector, maryGnosis, meshClient, maryBrowserMesh);
       maryGnosis.initialize(mary);
       maryDB = mock.makeDB(mary.augur, ACCOUNTS);
       maryConnector.initialize(mary.augur, await maryDB);
       maryAPI = new API(mary.augur, maryDB);
       await mary.approveCentralAuthority();
+
+      maryBrowserMesh.addOtherBrowserMeshToMockNetwork(johnBrowserMesh);
+      johnBrowserMesh.addOtherBrowserMeshToMockNetwork(maryBrowserMesh);
     });
 
     test('State API :: ZeroX :: getOrders', async () => {
@@ -137,6 +142,13 @@ describe('Augur API :: ZeroX :: ', () => {
       );
 
       await (await johnDB).sync(john.augur, mock.constants.chunkSize, 0);
+      await (await maryDB).sync(mary.augur, mock.constants.chunkSize, 0);
+
+      const orders: ZeroXOrders = await maryAPI.route('getZeroXOrders', {
+        marketId: market1.address,
+      });
+
+      console.log(`MARY ORDERS: ${JSON.stringify(orders)}`);
 
       await mary.placeBasicYesNoZeroXTrade(
         1,
@@ -149,8 +161,6 @@ describe('Augur API :: ZeroX :: ', () => {
       );
 
       await (await johnDB).sync(john.augur, mock.constants.chunkSize, 0);
-
-      await john.augur.getZeroXOrders({marketId: market1.address, outcome});
 
       const johnShares = await john.getNumSharesInMarket(market1, new BigNumber(outcome));
       const maryShares = await mary.getNumSharesInMarket(market1, new BigNumber(0));
@@ -342,8 +352,8 @@ describe('Augur API :: ZeroX :: ', () => {
   describe('without gnosis', () => {
     beforeAll(async () => {
       const johnConnector = new Connectors.DirectConnector();
-      const johnGnosis = new MockGnosisRelayAPI();
-      john = await ContractAPI.userWrapper(ACCOUNTS[0], provider, addresses, johnConnector, johnGnosis, meshClient, new MockBrowserMesh(meshClient));
+      const johnBrowserMesh = new MockBrowserMesh(meshClient);
+      john = await ContractAPI.userWrapper(ACCOUNTS[0], provider, addresses, johnConnector, undefined, meshClient, johnBrowserMesh);
       john.dependencies.setUseSafe(false)
       johnDB = mock.makeDB(john.augur, ACCOUNTS);
       johnConnector.initialize(john.augur, await johnDB);
@@ -351,13 +361,16 @@ describe('Augur API :: ZeroX :: ', () => {
       await john.approveCentralAuthority();
 
       const maryConnector = new Connectors.DirectConnector();
-      const maryGnosis = new MockGnosisRelayAPI();
-      mary = await ContractAPI.userWrapper(ACCOUNTS[1], provider, addresses, maryConnector, maryGnosis, meshClient, new MockBrowserMesh(meshClient));
+      const maryBrowserMesh = new MockBrowserMesh(meshClient);
+      mary = await ContractAPI.userWrapper(ACCOUNTS[1], provider, addresses, maryConnector, undefined, meshClient, maryBrowserMesh);
       mary.dependencies.setUseSafe(false)
       maryDB = mock.makeDB(mary.augur, ACCOUNTS);
       maryConnector.initialize(mary.augur, await maryDB);
       maryAPI = new API(mary.augur, maryDB);
       await mary.approveCentralAuthority();
+
+      maryBrowserMesh.addOtherBrowserMeshToMockNetwork(johnBrowserMesh);
+      johnBrowserMesh.addOtherBrowserMeshToMockNetwork(maryBrowserMesh);
     });
 
     test('State API :: ZeroX :: getOrders', async () => {
@@ -424,6 +437,7 @@ describe('Augur API :: ZeroX :: ', () => {
       );
 
       await (await johnDB).sync(john.augur, mock.constants.chunkSize, 0);
+      await (await maryDB).sync(mary.augur, mock.constants.chunkSize, 0);
 
       await mary.placeBasicYesNoZeroXTrade(
         1,
