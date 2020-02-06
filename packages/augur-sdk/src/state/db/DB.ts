@@ -66,7 +66,6 @@ export interface DerivedDBConfiguration {
 }
 
 export class DB {
-  private networkId: number;
   private blockstreamDelay: number;
   private syncableDatabases: { [dbName: string]: SyncableDB } = {};
   private disputeDatabase: DisputeDatabase;
@@ -141,7 +140,6 @@ export class DB {
    * @return {Promise<void>}
    */
   async initializeDB(networkId: number, enableZeroX: boolean, uploadBlockNumber = 0): Promise<DB> {
-    this.networkId = networkId;
     const schemas = this.generateSchemas();
 
     this.dexieDB.version(1).stores(schemas);
