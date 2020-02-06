@@ -6,7 +6,7 @@ import { ContractAPI, ACCOUNTS, loadSeedFile, defaultSeedPath } from '@augurproj
 import { EthersProvider } from '@augurproject/ethersjs-provider';
 import { ContractAddresses } from '@augurproject/artifacts';
 import { DB } from '@augurproject/sdk/build/state/db/DB';
-import { Connectors, BrowserMesh } from '@augurproject/sdk';
+import { Connectors } from '@augurproject/sdk';
 import { API } from '@augurproject/sdk/build/state/getter/API';
 import { ZeroXOrders } from '@augurproject/sdk/build/state/getter/ZeroXOrdersGetters';
 import { sleep } from '@augurproject/core/build/libraries/HelperFunctions';
@@ -27,14 +27,12 @@ describe('Augur API :: ZeroX :: ', () => {
   let provider: EthersProvider;
   let addresses: ContractAddresses;
 
-  let meshBrowser: BrowserMesh;
   let meshClient: WSClient;
   const mock = makeDbMock();
 
   beforeAll(async () => {
     const { port } = await MockMeshServer.create();
     meshClient = new WSClient(`ws://localhost:${port}`);
-    meshBrowser = new MockBrowserMesh(meshClient);
 
     const seed = await loadSeedFile(defaultSeedPath);
     addresses = seed.addresses;
@@ -50,9 +48,8 @@ describe('Augur API :: ZeroX :: ', () => {
     beforeAll(async () => {
       const johnConnector = new Connectors.DirectConnector();
       const johnGnosis = new MockGnosisRelayAPI();
-      john = await ContractAPI.userWrapper(ACCOUNTS[0], provider, addresses, johnConnector, johnGnosis, meshClient, meshBrowser);
+      john = await ContractAPI.userWrapper(ACCOUNTS[0], provider, addresses, johnConnector, johnGnosis, meshClient, new MockBrowserMesh(meshClient));
       expect(john).toBeDefined();
-
       johnGnosis.initialize(john);
       johnDB = mock.makeDB(john.augur, ACCOUNTS);
       johnConnector.initialize(john.augur, await johnDB);
@@ -61,7 +58,7 @@ describe('Augur API :: ZeroX :: ', () => {
 
       const maryConnector = new Connectors.DirectConnector();
       const maryGnosis = new MockGnosisRelayAPI();
-      mary = await ContractAPI.userWrapper(ACCOUNTS[1], provider, addresses, maryConnector, maryGnosis, meshClient, meshBrowser);
+      mary = await ContractAPI.userWrapper(ACCOUNTS[1], provider, addresses, maryConnector, maryGnosis, meshClient, new MockBrowserMesh(meshClient));
       maryGnosis.initialize(mary);
       maryDB = mock.makeDB(mary.augur, ACCOUNTS);
       maryConnector.initialize(mary.augur, await maryDB);
@@ -346,7 +343,7 @@ describe('Augur API :: ZeroX :: ', () => {
     beforeAll(async () => {
       const johnConnector = new Connectors.DirectConnector();
       const johnGnosis = new MockGnosisRelayAPI();
-      john = await ContractAPI.userWrapper(ACCOUNTS[0], provider, addresses, johnConnector, johnGnosis, meshClient, meshBrowser);
+      john = await ContractAPI.userWrapper(ACCOUNTS[0], provider, addresses, johnConnector, johnGnosis, meshClient, new MockBrowserMesh(meshClient));
       john.dependencies.setUseSafe(false)
       johnDB = mock.makeDB(john.augur, ACCOUNTS);
       johnConnector.initialize(john.augur, await johnDB);
@@ -355,7 +352,7 @@ describe('Augur API :: ZeroX :: ', () => {
 
       const maryConnector = new Connectors.DirectConnector();
       const maryGnosis = new MockGnosisRelayAPI();
-      mary = await ContractAPI.userWrapper(ACCOUNTS[1], provider, addresses, maryConnector, maryGnosis, meshClient, meshBrowser);
+      mary = await ContractAPI.userWrapper(ACCOUNTS[1], provider, addresses, maryConnector, maryGnosis, meshClient, new MockBrowserMesh(meshClient));
       mary.dependencies.setUseSafe(false)
       maryDB = mock.makeDB(mary.augur, ACCOUNTS);
       maryConnector.initialize(mary.augur, await maryDB);
