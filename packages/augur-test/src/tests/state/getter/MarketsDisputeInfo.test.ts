@@ -2,6 +2,7 @@ import { SECONDS_IN_A_DAY } from '@augurproject/sdk';
 import { MarketReportingState } from '@augurproject/sdk/build/constants';
 import { DB } from '@augurproject/sdk/build/state/db/DB';
 import { API } from '@augurproject/sdk/build/state/getter/API';
+import { BulkSyncStrategy } from '@augurproject/sdk/build/state/sync/BulkSyncStrategy';
 import {
   ACCOUNTS,
   ContractAPI,
@@ -36,6 +37,7 @@ describe('State API :: Markets :: ', () => {
   let john: ContractAPI;
   let mary: ContractAPI;
   let bob: ContractAPI;
+  let bulkSyncStrategy: BulkSyncStrategy;
 
   let baseProvider: TestEthersProvider;
   const markets = {};
@@ -50,6 +52,14 @@ describe('State API :: Markets :: ', () => {
     bob = await ContractAPI.userWrapper(ACCOUNTS[2], baseProvider, addresses);
     db = makeDbMock().makeDB(john.augur, ACCOUNTS);
     api = new API(john.augur, db);
+
+    bulkSyncStrategy = new BulkSyncStrategy(
+      john.provider.getLogs,
+      (await db).logFilters.buildFilter,
+      (await db).logFilters.onLogsAdded,
+      john.augur.contractEvents.parseLogs
+    );
+
     await john.approveCentralAuthority();
     await mary.approveCentralAuthority();
     await bob.approveCentralAuthority();
@@ -90,7 +100,7 @@ describe('State API :: Markets :: ', () => {
     let newTime = (await yesNoMarket.getEndTime_()).plus(1);
     await john.setTimestamp(newTime);
 
-    await (await db).sync(john.augur, CHUNK_SIZE, 0);
+    await bulkSyncStrategy.start(0, await john.provider.getBlockNumber());;
 
     let marketsInfo = await api.route('getMarketsInfo', {
       marketIds: [
@@ -105,7 +115,7 @@ describe('State API :: Markets :: ', () => {
     await john.repFaucet(new BigNumber(1e27));
     await john.doInitialReport(yesNoMarket, noPayoutSet, "", additionalRep);
 
-    await (await db).sync(john.augur, CHUNK_SIZE, 0);
+    await bulkSyncStrategy.start(0, await john.provider.getBlockNumber());;
 
     marketsInfo = await api.route('getMarketsInfo', {
       marketIds: [

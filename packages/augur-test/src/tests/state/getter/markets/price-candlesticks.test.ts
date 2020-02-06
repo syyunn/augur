@@ -1,6 +1,7 @@
 import { ORDER_TYPES } from '@augurproject/sdk';
 import { DB } from '@augurproject/sdk/build/state/db/DB';
 import { API } from '@augurproject/sdk/build/state/getter/API';
+import { BulkSyncStrategy } from '@augurproject/sdk/build/state/sync/BulkSyncStrategy';
 import { ContractAPI } from '@augurproject/tools';
 import { TestEthersProvider } from '@augurproject/tools/build/libs/TestEthersProvider';
 import { stringTo32ByteHex } from '@augurproject/tools/build/libs/Utils';
@@ -19,6 +20,7 @@ describe('State API :: Markets :: GetMarkets', () => {
   let john: ContractAPI;
   let mary: ContractAPI;
   let bob: ContractAPI;
+  let bulkSyncStrategy: BulkSyncStrategy;
 
   let baseProvider: TestEthersProvider;
   let markets = {};
@@ -36,6 +38,7 @@ describe('State API :: Markets :: GetMarkets', () => {
     john = state.john;
     mary = state.mary;
     bob = state.bob;
+    bulkSyncStrategy = state.bulkSyncStrategy;
   });
 
   test(':getMarketPriceCandlesticks', async () => {
@@ -302,7 +305,7 @@ describe('State API :: Markets :: GetMarkets', () => {
 
     const endTime = (await john.getTimestamp()).toNumber();
 
-    await (await db).sync(john.augur, CHUNK_SIZE, 0);
+    await bulkSyncStrategy.start(0, await john.provider.getBlockNumber());
 
     let yesNoMarketPriceCandlesticks = await api.route(
       'getMarketPriceCandlesticks',

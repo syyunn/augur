@@ -4,6 +4,7 @@ import { EthersProvider } from '@augurproject/ethersjs-provider';
 import { Augur, Connectors } from '@augurproject/sdk';
 import { DB } from '@augurproject/sdk/build/state/db/DB';
 import { API } from '@augurproject/sdk/build/state/getter/API';
+import { BulkSyncStrategy } from '@augurproject/sdk/build/state/sync/BulkSyncStrategy';
 import {
   ACCOUNTS,
   ContractAPI,
@@ -34,11 +35,15 @@ test('sync databases', async () => {
   const seed = await loadSeedFile(defaultSeedPath);
   augur = await makeTestAugur(seed, ACCOUNTS);
   const db = await mock.makeDB(augur, ACCOUNTS);
-  await db.sync(
-    augur,
-    mock.constants.chunkSize,
-    mock.constants.blockstreamDelay
+
+  const bulkSyncStrategy = new BulkSyncStrategy(
+    augur.provider.getLogs,
+    (await db).logFilters.buildFilter,
+    (await db).logFilters.onLogsAdded,
+    augur.contractEvents.parseLogs,
   );
+
+  await bulkSyncStrategy.start(0, await augur.provider.getBlockNumber());
 
   const syncableDBName = 'DisputeCrowdsourcerCompleted';
   const metaDBName = 'BlockNumbersSequenceIds';
@@ -97,7 +102,7 @@ test('sync databases', async () => {
   );
   expect(result[1].logIndex).toEqual(1);
 
-  await db.rollback(highestSyncedBlockNumber - 1);
+  await db.logFilters.onBlockRemoved(highestSyncedBlockNumber - 1);
 
   // Verify that newest 2 blocks were removed from SyncableDB
   result = await db.DisputeCrowdsourcerCompleted.toArray();
@@ -144,6 +149,14 @@ test('rollback derived database', async () => {
   johnDB = mock.makeDB(john.augur, ACCOUNTS);
   johnConnector.initialize(john.augur, await johnDB);
   johnAPI = new API(john.augur, johnDB);
+  const bulkSyncStrategy = new BulkSyncStrategy(
+    provider.getLogs,
+    (await johnDB).logFilters.buildFilter,
+    (await johnDB).logFilters.onLogsAdded,
+    john.augur.contractEvents.parseLogs,
+  );
+
+
   await john.approveCentralAuthority();
 
   // Create a market
@@ -152,7 +165,7 @@ test('rollback derived database', async () => {
     stringTo32ByteHex('B'),
   ]);
 
-  await (await johnDB).sync(john.augur, mock.constants.chunkSize, 0);
+  await bulkSyncStrategy.start(0, await john.provider.getBlockNumber());
 
   // Place first trade
   await john.placeBasicYesNoZeroXTrade(
@@ -165,7 +178,7 @@ test('rollback derived database', async () => {
     new BigNumber(100000)
   );
 
-  await (await johnDB).sync(john.augur, mock.constants.chunkSize, 0);
+  await bulkSyncStrategy.start(0, await john.provider.getBlockNumber());
   let marketData = await (await johnDB).Markets.get(market.address);
   const firstTradeBlock = marketData.blockNumber;
 
@@ -180,7 +193,7 @@ test('rollback derived database', async () => {
     new BigNumber(100000)
   );
 
-  await (await johnDB).sync(john.augur, mock.constants.chunkSize, 0);
+  await bulkSyncStrategy.start(0, await john.provider.getBlockNumber());
 
   // We monkeypatch the sync here to simulate updates from blockstream instead of bulk sync which normally doesnt store data in the rollback table
   const marketTable = (await johnDB)['marketDatabase'];
@@ -200,7 +213,7 @@ test('rollback derived database', async () => {
   }).bind(marketTable);
 
   // Sync
-  await (await johnDB).sync(john.augur, mock.constants.chunkSize, 0);
+  await bulkSyncStrategy.start(0, await john.provider.getBlockNumber());
   marketData = await (await johnDB).Markets.get(market.address);
 
   console.log('marketData.blockNumber--3', marketData.blockNumber);

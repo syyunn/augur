@@ -1,5 +1,6 @@
 import { DB } from '@augurproject/sdk/build/state/db/DB';
 import { API } from '@augurproject/sdk/build/state/getter/API';
+import { BulkSyncStrategy } from '@augurproject/sdk/build/state/sync/BulkSyncStrategy';
 import { ContractAPI, fork } from '@augurproject/tools';
 import { TestEthersProvider } from '@augurproject/tools/build/libs/TestEthersProvider';
 import { _beforeAll, _beforeEach, CHUNK_SIZE } from './common';
@@ -12,6 +13,7 @@ describe('State API :: Markets :: GetMarketsInfo', () => {
   let bob: ContractAPI;
 
   let baseProvider: TestEthersProvider;
+  let bulkSyncStrategy: BulkSyncStrategy;
   let markets = {};
 
   beforeAll(async () => {
@@ -27,13 +29,14 @@ describe('State API :: Markets :: GetMarketsInfo', () => {
     john = state.john;
     mary = state.mary;
     bob = state.bob;
+    bulkSyncStrategy = state.bulkSyncStrategy;
   });
 
   test(':getMarketsInfo disavowed in fork', async () => {
     const market = john.augur.contracts.marketFromAddress(markets['yesNoMarket1']);
     const otherMarket = john.augur.contracts.marketFromAddress(markets['yesNoMarket2']);
 
-    await (await db).sync(john.augur, CHUNK_SIZE, 0);
+    await bulkSyncStrategy.start(0, await john.provider.getBlockNumber());
 
     let infos = await api.route('getMarketsInfo', {marketIds: [market.address]});
     let info = infos[0];
@@ -42,7 +45,7 @@ describe('State API :: Markets :: GetMarketsInfo', () => {
 
     await otherMarket.disavowCrowdsourcers();
 
-    await (await db).sync(john.augur, CHUNK_SIZE, 0);
+    await bulkSyncStrategy.start(0, await john.provider.getBlockNumber());
 
     infos = await api.route('getMarketsInfo', {marketIds: [otherMarket.address]});
     expect(infos.length).toEqual(1);

@@ -17,6 +17,7 @@ import {
   ZeroXOrder,
   ZeroXOrders,
 } from '@augurproject/sdk/build/state/getter/ZeroXOrdersGetters';
+import { BulkSyncStrategy } from '@augurproject/sdk/build/state/sync/BulkSyncStrategy';
 import { ACCOUNTS, ContractAPI } from '@augurproject/tools';
 import { stringTo32ByteHex } from '@augurproject/tools/build/libs/Utils';
 import { BigNumber } from 'bignumber.js';
@@ -29,10 +30,12 @@ describe('3rd Party :: ZeroX :: ', () => {
   let john: ContractAPI;
   let johnDB: Promise<DB>;
   let johnAPI: API;
+  let johnBulkSyncStrategy: BulkSyncStrategy;
 
   let mary: ContractAPI;
   let maryDB: Promise<DB>;
   let maryAPI: API;
+  let maryBulkSyncStrategy: BulkSyncStrategy;
 
   let meshClient: WSClient;
   let providerJohn: EthersProvider;
@@ -61,6 +64,14 @@ describe('3rd Party :: ZeroX :: ', () => {
       johnDB = mock.makeDB(john.augur, ACCOUNTS);
       johnConnector.initialize(john.augur, await johnDB);
       johnAPI = new API(john.augur, johnDB);
+      johnBulkSyncStrategy = new BulkSyncStrategy(
+        john.provider.getLogs,
+        (await johnDB).logFilters.buildFilter,
+        (await johnDB).logFilters.onLogsAdded,
+        john.augur.contractEvents.parseLogs,
+      );
+
+
       await john.approveCentralAuthority();
       const johnSafe = await john.fundSafe();
       const johnSafeStatus = await john.getSafeStatus(johnSafe);
@@ -76,6 +87,14 @@ describe('3rd Party :: ZeroX :: ', () => {
       maryDB = mock.makeDB(mary.augur, ACCOUNTS);
       maryConnector.initialize(mary.augur, await maryDB);
       maryAPI = new API(mary.augur, maryDB);
+      maryBulkSyncStrategy = new BulkSyncStrategy(
+        mary.provider.getLogs,
+        (await maryDB).logFilters.buildFilter,
+        (await maryDB).logFilters.onLogsAdded,
+        mary.augur.contractEvents.parseLogs,
+      );
+
+
       await mary.approveCentralAuthority();
       const marySafe = await mary.fundSafe().catch((e) => console.error(`Safe funding failed: ${JSON.stringify(e)}`));
       if (marySafe) {
@@ -97,7 +116,7 @@ describe('3rd Party :: ZeroX :: ', () => {
         stringTo32ByteHex('A'),
         stringTo32ByteHex('B'),
       ]);
-      await (await johnDB).sync(john.augur, mock.constants.chunkSize, 0);
+      await johnBulkSyncStrategy.start(0, await john.provider.getBlockNumber());
 
       // Give John enough cash to pay for the 0x order.
       await john.faucet(new BigNumber(1e22));
@@ -143,7 +162,7 @@ describe('3rd Party :: ZeroX :: ', () => {
         stringTo32ByteHex('A'),
         stringTo32ByteHex('B'),
       ]);
-      await (await johnDB).sync(john.augur, mock.constants.chunkSize, 0);
+      await johnBulkSyncStrategy.start(0, await john.provider.getBlockNumber());
 
       // Give John enough cash to pay for the 0x order.
       await john.faucet(new BigNumber(1e22));
@@ -174,7 +193,7 @@ describe('3rd Party :: ZeroX :: ', () => {
     test('ZeroX Trade :: placeTrade', async () => {
       const market1 = await john.createReasonableYesNoMarket();
 
-      await (await johnDB).sync(john.augur, mock.constants.chunkSize, 0);
+      await johnBulkSyncStrategy.start(0, await john.provider.getBlockNumber());
 
       const outcome = 1;
       await john.placeBasicYesNoZeroXTrade(
@@ -187,8 +206,8 @@ describe('3rd Party :: ZeroX :: ', () => {
         new BigNumber(1000000000000000)
       );
 
-      await (await johnDB).sync(john.augur, mock.constants.chunkSize, 0);
-      await (await maryDB).sync(mary.augur, mock.constants.chunkSize, 0);
+      await johnBulkSyncStrategy.start(0, await john.provider.getBlockNumber());
+      await maryBulkSyncStrategy.start(0, await mary.provider.getBlockNumber());
 
       await mary.placeBasicYesNoZeroXTrade(
         1,
@@ -200,8 +219,8 @@ describe('3rd Party :: ZeroX :: ', () => {
         new BigNumber(1000000000000000)
       );
 
-      await (await johnDB).sync(john.augur, mock.constants.chunkSize, 0);
-      await (await maryDB).sync(john.augur, mock.constants.chunkSize, 0);
+      await johnBulkSyncStrategy.start(0, await john.provider.getBlockNumber());
+      await maryBulkSyncStrategy.start(0, await mary.provider.getBlockNumber());
 
       const johnShares = await john.getNumSharesInMarket(market1, new BigNumber(outcome));
       const maryShares = await mary.getNumSharesInMarket(market1, new BigNumber(0));
@@ -263,7 +282,7 @@ describe('3rd Party :: ZeroX :: ', () => {
         new BigNumber(1000000000000000)
       );
 
-      await (await johnDB).sync(john.augur, mock.constants.chunkSize, 0);
+      await johnBulkSyncStrategy.start(0, await john.provider.getBlockNumber());
 
       const fillAmount = new BigNumber(50);
       const fillPrice = new BigNumber(0.6);
@@ -300,7 +319,7 @@ describe('3rd Party :: ZeroX :: ', () => {
         stringTo32ByteHex('A'),
         stringTo32ByteHex('B'),
       ]);
-      await (await johnDB).sync(john.augur, mock.constants.chunkSize, 0);
+      await johnBulkSyncStrategy.start(0, await john.provider.getBlockNumber());
 
       // Give John enough cash to pay for the 0x order.
       await john.faucet(new BigNumber(1e22));

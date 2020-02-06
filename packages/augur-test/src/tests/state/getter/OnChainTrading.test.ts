@@ -6,6 +6,7 @@ import {
   Orders,
   OrderState,
 } from '@augurproject/sdk/build/state/getter/OnChainTrading';
+import { BulkSyncStrategy } from '@augurproject/sdk/build/state/sync/BulkSyncStrategy';
 import {
   ACCOUNTS,
   ContractAPI,
@@ -23,6 +24,7 @@ describe('State API :: Trading :: ', () => {
   let api: API;
   let john: ContractAPI;
   let mary: ContractAPI;
+  let bulkSyncStrategy: BulkSyncStrategy;
 
   beforeAll(async () => {
     const seed = await loadSeedFile(defaultSeedPath);
@@ -32,6 +34,13 @@ describe('State API :: Trading :: ', () => {
     mary = await ContractAPI.userWrapper(ACCOUNTS[1], provider, seed.addresses);
     db = mock.makeDB(john.augur, ACCOUNTS);
     api = new API(john.augur, db);
+
+    bulkSyncStrategy = new BulkSyncStrategy(
+      john.provider.getLogs,
+      (await db).logFilters.buildFilter,
+      (await db).logFilters.onLogsAdded,
+      john.augur.contractEvents.parseLogs,
+    );
   });
 
   test(':getTradingHistory', async () => {
@@ -85,7 +94,7 @@ describe('State API :: Trading :: ', () => {
     await mary.fillOrder(orderId1, numShares.div(2), '43');
     await mary.fillOrder(orderId2, numShares.div(2), '43');
 
-    await (await db).sync(john.augur, mock.constants.chunkSize, 0);
+    await bulkSyncStrategy.start(0, await john.provider.getBlockNumber());
 
     // Get trades by user
     let trades: MarketTradingHistory[] = await api.route('getTradingHistory', {
@@ -126,7 +135,7 @@ describe('State API :: Trading :: ', () => {
 
     await john.finalizeMarket(market1);
 
-    await (await db).sync(john.augur, mock.constants.chunkSize, 0);
+    await bulkSyncStrategy.start(0, await john.provider.getBlockNumber());
 
     trades = await api.route('getTradingHistory', {
       marketIds: [market1.address, market2.address],
@@ -166,7 +175,7 @@ describe('State API :: Trading :: ', () => {
     // Take half the order using the same account
     const orderId = await john.getBestOrderId(bid, market.address, outcome);
 
-    await (await db).sync(john.augur, mock.constants.chunkSize, 0);
+    await bulkSyncStrategy.start(0, await john.provider.getBlockNumber());
 
     // Get orders for the market
     let orders: Orders = await api.route('getOpenOnChainOrders', {
@@ -178,7 +187,7 @@ describe('State API :: Trading :: ', () => {
 
     await john.fillOrder(orderId, numShares.div(2), '42');
 
-    await (await db).sync(john.augur, mock.constants.chunkSize, 0);
+    await bulkSyncStrategy.start(0, await john.provider.getBlockNumber());
 
     // Get orders for the market
     orders = await api.route('getOpenOnChainOrders', {
@@ -194,7 +203,7 @@ describe('State API :: Trading :: ', () => {
     // Cancel order
     await john.cancelNativeOrder(orderId);
 
-    await (await db).sync(john.augur, mock.constants.chunkSize, 0);
+    await bulkSyncStrategy.start(0, await john.provider.getBlockNumber());
 
     // Get orders for the market
     orders = await api.route('getOpenOnChainOrders', {
@@ -237,7 +246,7 @@ describe('State API :: Trading :: ', () => {
       stringTo32ByteHex('42')
     );
 
-    await (await db).sync(john.augur, mock.constants.chunkSize, 0);
+    await bulkSyncStrategy.start(0, await john.provider.getBlockNumber());
 
     // Test `filterFinalized` param
     orders = await api.route('getOpenOnChainOrders', {

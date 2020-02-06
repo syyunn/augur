@@ -215,56 +215,6 @@ export class DB {
   }
 
   /**
-   * Syncs generic events and user-specific events with blockchain and updates MetaDB info.
-   *
-   * @param {Augur} augur Augur object with which to sync
-   * @param {number} chunkSize Number of blocks to retrieve at a time when syncing logs
-   * @param {number} blockstreamDelay Number of blocks by which blockstream is behind the blockchain
-   */
-  async sync(augur: Augur, chunkSize: number, blockstreamDelay: number): Promise<void> {
-    const dbSyncPromises = [];
-    const highestAvailableBlockNumber = await augur.provider.getBlockNumber();
-
-    console.log('Syncing generic log DBs');
-    for (const genericEventDBDescription of this.genericEventDBDescriptions) {
-      const dbName = genericEventDBDescription.EventName;
-      dbSyncPromises.push(
-        this.syncableDatabases[dbName].sync(
-          augur,
-          chunkSize,
-          blockstreamDelay,
-          highestAvailableBlockNumber
-        )
-      );
-    }
-
-    dbSyncPromises.push(
-      this.syncableDatabases['ParsedOrderEvents'].sync(
-        augur,
-        chunkSize,
-        blockstreamDelay,
-        highestAvailableBlockNumber
-      )
-    );
-
-    await Promise.all(dbSyncPromises);
-
-    // Derived DBs are synced after generic log DBs complete
-    console.log('Syncing derived DBs');
-
-    await this.disputeDatabase.sync(highestAvailableBlockNumber);
-    await this.currentOrdersDatabase.sync(highestAvailableBlockNumber);
-    await this.cancelledOrdersDatabase.sync(highestAvailableBlockNumber);
-
-    // The Market DB syncs after the derived DBs, as it depends on a derived DB
-    await this.marketDatabase.sync(highestAvailableBlockNumber);
-    console.log('Syncing Complete - SDK Ready');
-    this.augur.events.emit(SubscriptionEventName.SDKReady, {
-        eventName: SubscriptionEventName.SDKReady,
-    });
-  }
-
-  /**
    * Gets the block number at which to begin syncing. (That is, the lowest last-synced
    * block across all event log databases or the upload block number for this network.)
    *

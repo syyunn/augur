@@ -26,6 +26,7 @@ let provider: EthersProvider;
 let john: ContractAPI;
 let addresses: ContractAddresses;
 let db: Promise<DB>;
+let bulkSyncStrategy: BulkSyncStrategy;
 
 const mock = makeDbMock();
 
@@ -71,6 +72,13 @@ beforeAll(async () => {
   john = await ContractAPI.userWrapper(ACCOUNTS[0], provider, addresses);
   db = mock.makeDB(john.augur, ACCOUNTS);
 
+  bulkSyncStrategy = new BulkSyncStrategy(
+    john.provider.getLogs,
+    (await db).logFilters.buildFilter,
+    (await db).logFilters.onLogsAdded,
+    john.augur.contractEvents.parseLogs,
+  );
+
   await john.approveCentralAuthority();
 
   connector = new SingleThreadConnector();
@@ -106,7 +114,7 @@ test('SingleThreadConnector :: Should route correctly and handle events, extraIn
         '{"categories": ["yesNo category 1", "yesNo category 2"], "description": "yesNo description 1", "longDescription": "yesNo longDescription 1"}'
       );
 
-      await (await db).sync(john.augur, mock.constants.chunkSize, 0);
+      await bulkSyncStrategy.start(0, await john.provider.getBlockNumber());
 
       const getMarkets = connector.bindTo(Markets.getMarkets);
       const marketList = await getMarkets({
@@ -120,5 +128,5 @@ test('SingleThreadConnector :: Should route correctly and handle events, extraIn
     }
   );
 
-  await (await db).sync(john.augur, mock.constants.chunkSize, 0);
+  await bulkSyncStrategy.start(0, await john.provider.getBlockNumber());
 });

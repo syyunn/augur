@@ -34,7 +34,7 @@ describe('State API :: Accounts :: ', () => {
     api = new API(john.augur, db);
 
     bulkSyncStrategy = new BulkSyncStrategy(
-      provider.getLogs,
+      john.provider.getLogs,
       (await db).logFilters.buildFilter,
       (await db).logFilters.onLogsAdded,
       john.augur.contractEvents.parseLogs,

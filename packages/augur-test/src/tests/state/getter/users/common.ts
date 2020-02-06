@@ -6,6 +6,7 @@ import {
 } from '@augurproject/sdk';
 import { DB } from '@augurproject/sdk/build/state/db/DB';
 import { API } from '@augurproject/sdk/build/state/getter/API';
+import { BulkSyncStrategy } from '@augurproject/sdk/build/state/sync/BulkSyncStrategy';
 import {
   ACCOUNTS,
   ContractAPI,
@@ -119,7 +120,15 @@ export async function processTrades(
   for (const trade of tradeData) {
     await doTrade(user0, user1, trade, market, minPrice, maxPrice);
 
-    await (await db).sync(user0.augur, CHUNK_SIZE, 0);
+    const bulkSyncStrategy = new BulkSyncStrategy(
+      user0.provider.getLogs,
+      (await db).logFilters.buildFilter,
+      (await db).logFilters.onLogsAdded,
+      user0.augur.contractEvents.parseLogs,
+    );
+
+
+    await bulkSyncStrategy.start(0, await user0.provider.getBlockNumber());
 
     const { tradingPositions } = await api.route('getUserTradingPositions', {
       universe,

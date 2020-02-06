@@ -1,6 +1,7 @@
 import { DB } from '@augurproject/sdk/build/state/db/DB';
 
 import { API } from '@augurproject/sdk/build/state/getter/API';
+import { BulkSyncStrategy } from '@augurproject/sdk/build/state/sync/BulkSyncStrategy';
 import { ContractAPI } from '@augurproject/tools';
 import { BigNumber } from 'bignumber.js';
 import * as _ from 'lodash';
@@ -24,6 +25,7 @@ describe('State API :: Users :: ', () => {
   let john: ContractAPI;
   let mary: ContractAPI;
   let baseProvider: TestEthersProvider;
+  let bulkSyncStrategy: BulkSyncStrategy;
 
   beforeAll(async () => {
     const state = await _beforeAll();
@@ -36,6 +38,13 @@ describe('State API :: Users :: ', () => {
     api = state.api;
     john = state.john;
     mary = state.mary;
+
+    bulkSyncStrategy = new BulkSyncStrategy(
+      john.provider.getLogs,
+      (await db).logFilters.buildFilter,
+      (await db).logFilters.onLogsAdded,
+      john.augur.contractEvents.parseLogs,
+    );
   });
 
   test(':getProfitLoss & getProfitLossSummary ', async () => {
@@ -94,7 +103,7 @@ describe('State API :: Users :: ', () => {
       await doTrade(john, mary, trade, trade.market);
     }
 
-    await (await db).sync(john.augur, mock.constants.chunkSize, 0);
+    await bulkSyncStrategy.start(0, await john.provider.getBlockNumber());
 
     const profitLoss = await api.route('getProfitLoss', {
       universe: john.augur.contracts.universe.address,

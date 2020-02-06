@@ -1,6 +1,7 @@
 import { SECONDS_IN_A_DAY } from '@augurproject/sdk';
 import { DB } from '@augurproject/sdk/build/state/db/DB';
 import { API } from '@augurproject/sdk/build/state/getter/API';
+import { BulkSyncStrategy } from '@augurproject/sdk/build/state/sync/BulkSyncStrategy';
 import {
   ACCOUNTS,
   ContractAPI,
@@ -29,6 +30,8 @@ export interface SomeState {
   john: ContractAPI;
   mary: ContractAPI;
   bob: ContractAPI;
+
+  bulkSyncStrategy: BulkSyncStrategy;
 }
 
 export async function _beforeAll(): Promise<AllState> {
@@ -113,7 +116,14 @@ export async function _beforeEach(allState: AllState): Promise<SomeState> {
   const db = makeDbMock().makeDB(john.augur, ACCOUNTS);
   const api = new API(john.augur, db);
 
+  const bulkSyncStrategy = new BulkSyncStrategy(
+    john.provider.getLogs,
+    (await db).logFilters.buildFilter,
+    (await db).logFilters.onLogsAdded,
+    john.augur.contractEvents.parseLogs,
+  );
+
   return {
-    db, api, john, mary, bob
+    bulkSyncStrategy, db, api, john, mary, bob
   }
 }

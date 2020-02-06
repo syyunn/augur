@@ -34,33 +34,6 @@ export class SyncableDB extends RollbackTable {
     this.rollingBack = false;
   }
 
-  async sync(augur: Augur, chunkSize: number, blockStreamDelay: number, highestAvailableBlockNumber: number): Promise<void> {
-    this.syncing = true;
-
-    let highestSyncedBlockNumber = await this.syncStatus.getHighestSyncBlock(
-      this.dbName
-    );
-
-    const goalBlock = highestAvailableBlockNumber - blockStreamDelay;
-    while (highestSyncedBlockNumber < goalBlock) {
-      const endBlockNumber = Math.min(
-        highestSyncedBlockNumber + chunkSize,
-        highestAvailableBlockNumber
-      );
-      const logs = await this.getLogs(
-        augur,
-        highestSyncedBlockNumber,
-        endBlockNumber
-      );
-      highestSyncedBlockNumber = await this.addNewBlock(endBlockNumber, logs);
-    }
-
-    this.syncing = false;
-    await this.syncStatus.updateSyncingToFalse(this.dbName);
-
-    // TODO Make any other external calls as needed (such as pushing user's balance to UI)
-  }
-
   async addNewBlock(blocknumber: number, logs: ParsedLog[]): Promise<number> {
     // don't do anything until rollback is complete. We'll sync back to this block later
     if (this.rollingBack) {

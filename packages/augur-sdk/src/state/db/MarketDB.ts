@@ -70,16 +70,6 @@ export class MarketDB extends DerivedDB {
     this.augur.events.subscribe(SubscriptionEventName.TimestampSet, this.processTimestampSet);
   }
 
-  async doSync(highestAvailableBlockNumber: number): Promise<void> {
-    this.syncing = true;
-    await super.doSync(highestAvailableBlockNumber);
-    await this.syncOrderBooks([]);
-    const timestamp = (await this.augur.getTimestamp()).toNumber();
-    await this.processTimestamp(timestamp, highestAvailableBlockNumber);
-    await this.syncFTS();
-    this.syncing = false;
-  }
-
   syncFTS = async (): Promise<void> => {
     if (this.augur.syncableFlexSearch) {
       let marketDocs = await this.allDocs();

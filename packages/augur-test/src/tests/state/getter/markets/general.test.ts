@@ -13,6 +13,7 @@ import {
   GetMarketsSortBy,
   MarketList,
 } from '@augurproject/sdk/build/state/getter/Markets';
+import { BulkSyncStrategy } from '@augurproject/sdk/build/state/sync/BulkSyncStrategy';
 import {
   ACCOUNTS,
   ContractAPI,
@@ -34,10 +35,12 @@ describe('State API :: General', () => {
   let john: ContractAPI;
   let johnDB: Promise<DB>;
   let johnAPI: API;
+  let johnBulkSyncStrategy: BulkSyncStrategy;
 
   let mary: ContractAPI;
   let maryDB: Promise<DB>;
   let maryAPI: API;
+  let maryBulkSyncStrategy: BulkSyncStrategy
 
   let provider: EthersProvider;
   let addresses: ContractAddresses;
@@ -81,6 +84,14 @@ describe('State API :: General', () => {
       johnDB = mock.makeDB(john.augur, ACCOUNTS);
       johnConnector.initialize(john.augur, await johnDB);
       johnAPI = new API(john.augur, johnDB);
+      johnBulkSyncStrategy = new BulkSyncStrategy(
+        provider.getLogs,
+        (await johnDB).logFilters.buildFilter,
+        (await johnDB).logFilters.onLogsAdded,
+        john.augur.contractEvents.parseLogs,
+      );
+
+
       await john.approveCentralAuthority();
 
       const maryConnector = new Connectors.DirectConnector();
@@ -99,6 +110,14 @@ describe('State API :: General', () => {
       maryDB = mock.makeDB(mary.augur, ACCOUNTS);
       maryConnector.initialize(mary.augur, await maryDB);
       maryAPI = new API(mary.augur, maryDB);
+
+      maryBulkSyncStrategy = new BulkSyncStrategy(
+        provider.getLogs,
+        (await maryDB).logFilters.buildFilter,
+        (await maryDB).logFilters.onLogsAdded,
+        mary.augur.contractEvents.parseLogs,
+      );
+
       await mary.approveCentralAuthority();
 
       maryBrowserMesh.addOtherBrowserMeshToMockNetwork(johnBrowserMesh);
@@ -117,8 +136,8 @@ describe('State API :: General', () => {
         stringTo32ByteHex('B'),
       ]);
 
-      await (await johnDB).sync(john.augur, mock.constants.chunkSize, 0);
-      await (await maryDB).sync(mary.augur, mock.constants.chunkSize, 0);
+      await johnBulkSyncStrategy.start(0, await john.provider.getBlockNumber());
+      await maryBulkSyncStrategy.start(0, await mary.provider.getBlockNumber());
 
       // Test invalid universe address
       let errorMessage = '';
@@ -239,7 +258,7 @@ describe('State API :: General', () => {
       // Test maxLiquiditySpread
       const yesNoMarket2 = await john.createReasonableYesNoMarket();
       const yesNoMarket3 = await john.createReasonableYesNoMarket();
-      await (await johnDB).sync(john.augur, mock.constants.chunkSize, 0);
+      await johnBulkSyncStrategy.start(0, await john.provider.getBlockNumber());
 
       const expirationTime = new BigNumber(new Date().valueOf()).plus(10000);
 
@@ -348,7 +367,7 @@ describe('State API :: General', () => {
       // Terrible, but not clear how else to wait on the mesh event propagating to the callback and it finishing updating the DB...
       await sleep(300);
 
-      await (await johnDB).sync(john.augur, mock.constants.chunkSize, 0);
+      await johnBulkSyncStrategy.start(0, await john.provider.getBlockNumber());
 
       marketList = await johnAPI.route('getMarkets', {
         universe: addresses.Universe,
@@ -394,7 +413,7 @@ describe('State API :: General', () => {
         new BigNumber(100000)
       );
 
-      await (await johnDB).sync(john.augur, mock.constants.chunkSize, 0);
+      await johnBulkSyncStrategy.start(0, await john.provider.getBlockNumber());
 
       marketList = await johnAPI.route('getMarkets', {
         universe: addresses.Universe,
@@ -412,7 +431,7 @@ describe('State API :: General', () => {
       // Move timestamp to designated reporting phase
       const endTime = await yesNoMarket1.getEndTime_();
       await john.setTimestamp(endTime.plus(1));
-      await (await johnDB).sync(john.augur, mock.constants.chunkSize, 0);
+      await johnBulkSyncStrategy.start(0, await john.provider.getBlockNumber());
 
       // Test reportingStates
       marketList = await johnAPI.route('getMarkets', {
@@ -438,7 +457,7 @@ describe('State API :: General', () => {
 
       await john.doInitialReport(yesNoMarket3, noPayoutSet);
 
-      await (await johnDB).sync(john.augur, mock.constants.chunkSize, 0);
+      await johnBulkSyncStrategy.start(0, await john.provider.getBlockNumber());;
 
       // Test sortBy
       marketList = await johnAPI.route('getMarkets', {

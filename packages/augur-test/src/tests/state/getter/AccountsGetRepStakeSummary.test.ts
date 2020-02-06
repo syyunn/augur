@@ -1,6 +1,7 @@
 import { SECONDS_IN_A_DAY } from '@augurproject/sdk';
 import { DB } from '@augurproject/sdk/build/state/db/DB';
 import { API } from '@augurproject/sdk/build/state/getter/API';
+import { BulkSyncStrategy } from '@augurproject/sdk/build/state/sync/BulkSyncStrategy';
 import {
   ACCOUNTS,
   ContractAPI,
@@ -13,6 +14,7 @@ import { makeDbMock, makeProvider } from '../../../libs';
 const mock = makeDbMock();
 
 describe('State API :: Accounts :: ', () => {
+  let bulkSyncStrategy: BulkSyncStrategy;
   let db: Promise<DB>;
   let api: API;
   let john: ContractAPI;
@@ -25,6 +27,14 @@ describe('State API :: Accounts :: ', () => {
     john = await ContractAPI.userWrapper(ACCOUNTS[0], provider, seed.addresses);
     mary = await ContractAPI.userWrapper(ACCOUNTS[1], provider, seed.addresses);
     db = mock.makeDB(john.augur, ACCOUNTS);
+
+    bulkSyncStrategy = new BulkSyncStrategy(
+      john.provider.getLogs,
+      (await db).logFilters.buildFilter,
+      (await db).logFilters.onLogsAdded,
+      john.augur.contractEvents.parseLogs,
+    );
+
     api = new API(john.augur, db);
     await john.approveCentralAuthority();
     await mary.approveCentralAuthority();
@@ -53,7 +63,7 @@ describe('State API :: Accounts :: ', () => {
     ];
     await john.doInitialReport(yesNoMarket1, noPayoutSet);
 
-    await (await db).sync(john.augur, mock.constants.chunkSize, 0);
+    await bulkSyncStrategy.start(0, await john.provider.getBlockNumber());
 
     let accountRepStakeSummary = await api.route(
       'getAccountRepStakeSummary',
@@ -112,7 +122,7 @@ describe('State API :: Accounts :: ', () => {
       }
     }
 
-    await (await db).sync(john.augur, mock.constants.chunkSize, 0);
+    await bulkSyncStrategy.start(0, await john.provider.getBlockNumber());
 
     accountRepStakeSummary = await api.route(
       'getAccountRepStakeSummary',
@@ -169,7 +179,7 @@ describe('State API :: Accounts :: ', () => {
     await winningReportingParticipant.redeem(john.account.publicKey);
     await winningReportingParticipant.redeem(mary.account.publicKey);
 
-    await (await db).sync(john.augur, mock.constants.chunkSize, 0);
+    await bulkSyncStrategy.start(0, await john.provider.getBlockNumber());
 
     accountRepStakeSummary = await api.route(
         'getAccountRepStakeSummary',
