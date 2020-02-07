@@ -69,7 +69,7 @@ export class DB {
   private syncableDatabases: { [dbName: string]: SyncableDB } = {};
   private disputeDatabase: DisputeDatabase;
   private currentOrdersDatabase: CurrentOrdersDatabase;
-  private marketDatabase: MarketDB;
+  marketDatabase: MarketDB;
   private cancelledOrdersDatabase: CancelledOrdersDB;
   private parsedOrderEventDatabase: ParsedOrderEventDB;
   private zeroXOrders: ZeroXOrders;
