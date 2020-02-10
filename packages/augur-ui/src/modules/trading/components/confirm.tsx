@@ -177,7 +177,7 @@ class Confirm extends Component<ConfirmProps, ConfirmState> {
 
     if (
       totalCost &&
-      createBigNumber(totalCost.fullPrecision).gt(
+      createBigNumber(potentialDaiLoss.fullPrecision).gt(
         createBigNumber(availableDai)
       ) && !tradingTutorial
     ) {
