@@ -61,7 +61,7 @@ import { MARKET_VIEW_HEAD_TAGS } from 'modules/seo/helmet-configs';
 
 interface MarketViewProps {
   isMarketLoading: boolean;
-  closeMarketLoadingModalOnly: Function;
+  closeMarketLoadingModalOnly?: Function;
   market: MarketData;
   marketId: string;
   marketReviewSeen: boolean;
@@ -250,7 +250,7 @@ export default class MarketView extends Component<
       this.props.loadMarketsInfo(this.props.marketId);
       this.props.loadMarketTradingHistory(marketId);
     }
-    if (!this.props.isMarketLoading) {
+    if (!this.props.isMarketLoading && closeMarketLoadingModalOnly) {
       closeMarketLoadingModalOnly(this.props.modalShowing);
     }
 
