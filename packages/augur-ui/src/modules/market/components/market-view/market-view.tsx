@@ -268,7 +268,9 @@ export default class MarketView extends Component<
   }
 
   componentWillUnmount() {
-    this.props.clearOrderBook();
+    if (this.props.clearOrderBook) {
+      this.props.clearOrderBook();
+    }
   }
 
   tradingTutorialWidthCheck() {
