@@ -2,15 +2,9 @@ import { WSClient } from '@0x/mesh-rpc-client';
 import { ContractAddresses } from '@augurproject/artifacts';
 import { EthersProvider } from '@augurproject/ethersjs-provider';
 import { Augur, Connectors } from '@augurproject/sdk';
-import { DB } from '@augurproject/sdk/build/state/db/DB';
-import { API } from '@augurproject/sdk/build/state/getter/API';
 import { BulkSyncStrategy } from '@augurproject/sdk/build/state/sync/BulkSyncStrategy';
-import {
-  ACCOUNTS,
-  ContractAPI,
-  defaultSeedPath,
-  loadSeedFile,
-} from '@augurproject/tools';
+import { ACCOUNTS, defaultSeedPath, loadSeedFile } from '@augurproject/tools';
+import { TestContractAPI } from '@augurproject/tools';
 import { stringTo32ByteHex } from '@augurproject/tools/build/libs/Utils';
 import { BigNumber } from 'bignumber.js';
 import {
@@ -34,13 +28,13 @@ let augur: Augur;
 test('sync databases', async () => {
   const seed = await loadSeedFile(defaultSeedPath);
   augur = await makeTestAugur(seed, ACCOUNTS);
-  const db = await mock.makeDB(augur, ACCOUNTS);
+  const db = await mock.makeDB(augur);
 
   const bulkSyncStrategy = new BulkSyncStrategy(
     augur.provider.getLogs,
     (await db).logFilters.buildFilter,
     (await db).logFilters.onLogsAdded,
-    augur.contractEvents.parseLogs,
+    augur.contractEvents.parseLogs
   );
 
   await bulkSyncStrategy.start(0, await augur.provider.getBlockNumber());
@@ -117,9 +111,7 @@ test('sync databases', async () => {
 });
 
 test('rollback derived database', async () => {
-  let john: ContractAPI;
-  let johnDB: Promise<DB>;
-  let johnAPI: API;
+  let john: TestContractAPI;
 
   let provider: EthersProvider;
   let addresses: ContractAddresses;
@@ -134,7 +126,7 @@ test('rollback derived database', async () => {
 
   const johnConnector = new Connectors.DirectConnector();
   const johnGnosis = new MockGnosisRelayAPI();
-  john = await ContractAPI.userWrapper(
+  john = await TestContractAPI.userWrapper(
     ACCOUNTS[0],
     provider,
     addresses,
@@ -146,16 +138,7 @@ test('rollback derived database', async () => {
   expect(john).toBeDefined();
 
   johnGnosis.initialize(john);
-  johnDB = mock.makeDB(john.augur, ACCOUNTS);
-  johnConnector.initialize(john.augur, await johnDB);
-  johnAPI = new API(john.augur, johnDB);
-  const bulkSyncStrategy = new BulkSyncStrategy(
-    provider.getLogs,
-    (await johnDB).logFilters.buildFilter,
-    (await johnDB).logFilters.onLogsAdded,
-    john.augur.contractEvents.parseLogs,
-  );
-
+  johnConnector.initialize(john.augur, john.db);
 
   await john.approveCentralAuthority();
 
@@ -164,9 +147,11 @@ test('rollback derived database', async () => {
     stringTo32ByteHex('A'),
     stringTo32ByteHex('B'),
   ]);
-  const expirationTimeInSeconds = new BigNumber(Math.round(+new Date() / 1000).valueOf()).plus(10000);
+  const expirationTimeInSeconds = new BigNumber(
+    Math.round(+new Date() / 1000).valueOf()
+  ).plus(10000);
 
-  await bulkSyncStrategy.start(0, await john.provider.getBlockNumber());
+  await john.sync();
 
   // Place first trade
   await john.placeBasicYesNoZeroXTrade(
@@ -179,8 +164,8 @@ test('rollback derived database', async () => {
     expirationTimeInSeconds
   );
 
-  await bulkSyncStrategy.start(0, await john.provider.getBlockNumber());
-  let marketData = await (await johnDB).Markets.get(market.address);
+  await john.sync();
+  let marketData = await john.db.Markets.get(market.address);
   const firstTradeBlock = marketData.blockNumber;
 
   // Place a trade on Invalid
@@ -194,23 +179,22 @@ test('rollback derived database', async () => {
     expirationTimeInSeconds
   );
 
-  await bulkSyncStrategy.start(0, await john.provider.getBlockNumber());
+  await john.sync();
 
   // Sync
-  await bulkSyncStrategy.start(0, await john.provider.getBlockNumber());
-  marketData = await (await johnDB).Markets.get(market.address);
+  await john.sync();
+  marketData = await john.db.Markets.get(market.address);
 
   // Confirm the invalidFilter has been set due to this order on the market data
   await expect(marketData.invalidFilter).toEqual(1);
 
   // Now we'll rollback the block this update came in
-  await (await johnDB).rollback(firstTradeBlock);
+  await john.db.rollback(firstTradeBlock);
 
-  marketData = await (await johnDB).Markets.get(market.address);
+  marketData = await john.db.Markets.get(market.address);
 
   // Confirm the invalidFilter has been set due to this order on the market data
   await expect(marketData.invalidFilter).toEqual(0);
-
 
   // cleanup
   meshClient.destroy();

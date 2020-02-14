@@ -1,6 +1,5 @@
 import Dexie from 'dexie';
 import { Augur } from '../../Augur';
-import { SubscriptionEventName } from '../../constants';
 import {
   LogCallbackType,
   LogFilterAggregatorInterface,
@@ -28,7 +27,8 @@ import {
   MarketOIChangedLog,
   MarketParticipantsDisavowedLog,
   MarketTransferredLog,
-  MarketVolumeChangedLog, OrderEventLog,
+  MarketVolumeChangedLog,
+  OrderEventLog,
   ParsedOrderEventLog,
   ParticipationTokensRedeemedLog,
   ProfitLossChangedLog,
@@ -226,10 +226,44 @@ export class DB {
   async getSyncStartingBlock(): Promise<number> {
     const highestSyncBlocks = [];
     for (const genericEventDBDescription of this.genericEventDBDescriptions) {
-      highestSyncBlocks.push(await this.syncStatus.getHighestSyncBlock(genericEventDBDescription.EventName));
+      highestSyncBlocks.push(await this.syncStatus.getHighestSyncBlock(
+        genericEventDBDescription.EventName));
     }
 
     return Math.min(...highestSyncBlocks);
+  }
+
+  /**
+   * Syncs generic events and user-specific events with blockchain and updates MetaDB info.
+   *
+   * @param {Augur} augur Augur object with which to sync
+   * @param {number} chunkSize Number of blocks to retrieve at a time when syncing logs
+   * @param {number} blockstreamDelay Number of blocks by which blockstream is behind the blockchain
+   */
+  async sync(): Promise<void> {
+    const dbSyncPromises = [];
+    const highestAvailableBlockNumber = await this.augur.provider.getBlockNumber();
+
+    for (const genericEventDBDescription of this.genericEventDBDescriptions) {
+      const dbName = genericEventDBDescription.EventName;
+      dbSyncPromises.push(
+        this.syncableDatabases[dbName].sync(
+          highestAvailableBlockNumber,
+        ),
+      );
+    }
+
+    await Promise.all(dbSyncPromises);
+
+    // Derived DBs are synced after generic log DBs complete
+    console.log('Syncing derived DBs');
+
+    await this.disputeDatabase.sync(highestAvailableBlockNumber);
+    await this.currentOrdersDatabase.sync(highestAvailableBlockNumber);
+    await this.cancelledOrdersDatabase.sync(highestAvailableBlockNumber);
+
+    // The Market DB syncs after the derived DBs, as it depends on a derived DB
+    await this.marketDatabase.sync(highestAvailableBlockNumber);
   }
 
   /**

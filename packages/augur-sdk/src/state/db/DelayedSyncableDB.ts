@@ -36,10 +36,7 @@ export class DelayedSyncableDB extends BaseSyncableDB {
     }
   }
 
-  async onBulkSyncComplete({highestAvailableBlockNumber}) {
-    console.log('onBulkSyncComplete-checkpoint-1');
-
-    await this.sync(highestAvailableBlockNumber);
+  async onBulkSyncComplete() {
     this.db.registerEventListener(this.eventName, this.addNewBlock.bind(this));
   }
 

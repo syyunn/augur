@@ -1,5 +1,4 @@
-import { Dexie } from "dexie";
-import * as _ from 'lodash';
+import { Dexie } from 'dexie';
 
 export type PrimitiveID = string | number | Date;
 
@@ -43,7 +42,7 @@ export abstract class AbstractTable {
     for (const document of documents) {
       delete document.constructor;
     }
-    await this.table.bulkAdd(documents);
+    await this.table.bulkPut(documents);
   }
 
   protected async upsertDocument(documentID: ID, document: BaseDocument): Promise<void> {
