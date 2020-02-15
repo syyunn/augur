@@ -43,8 +43,8 @@ export class DelayedSyncableDB extends BaseSyncableDB {
   async sync(highestAvailableBlockNumber: number): Promise<void> {
     this.syncing = true;
 
-    const result = await this.table.toArray();
-    await this.bulkUpsertDocuments(result);
+    const result = await this.db.dexieDB[this.eventName].toArray();
+    await this.bulkUpsertDocuments(_.orderBy(result, ['blockNumber', 'logIndex'], ['asc', 'asc']));
 
     this.syncing = false;
   }

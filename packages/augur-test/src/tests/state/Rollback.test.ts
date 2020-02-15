@@ -27,17 +27,16 @@ let augur: Augur;
  */
 test('sync databases', async () => {
   const seed = await loadSeedFile(defaultSeedPath);
-  augur = await makeTestAugur(seed, ACCOUNTS);
-  const db = await mock.makeDB(augur);
+  const baseProvider = await makeProvider(seed, ACCOUNTS);
+  const addresses = baseProvider.getContractAddresses();
 
-  const bulkSyncStrategy = new BulkSyncStrategy(
-    augur.provider.getLogs,
-    (await db).logFilters.buildFilter,
-    (await db).logFilters.onLogsAdded,
-    augur.contractEvents.parseLogs
+  const john = await TestContractAPI.userWrapper(
+    ACCOUNTS[0],
+    baseProvider,
+    addresses
   );
 
-  await bulkSyncStrategy.start(0, await augur.provider.getBlockNumber());
+  await john.sync();
 
   const syncableDBName = 'DisputeCrowdsourcerCompleted';
   const metaDBName = 'BlockNumbersSequenceIds';
@@ -46,10 +45,10 @@ test('sync databases', async () => {
   const originalHighestSyncedBlockNumbers: any = {};
   originalHighestSyncedBlockNumbers[
     syncableDBName
-  ] = await db.syncStatus.getHighestSyncBlock(syncableDBName);
+  ] = await john.db.syncStatus.getHighestSyncBlock(syncableDBName);
   originalHighestSyncedBlockNumbers[
     metaDBName
-  ] = await db.syncStatus.getHighestSyncBlock(metaDBName);
+  ] = await john.db.syncStatus.getHighestSyncBlock(metaDBName);
 
   const blockLogs = [
     {
@@ -67,8 +66,8 @@ test('sync databases', async () => {
     },
   ];
 
-  await db.addNewBlock(syncableDBName, blockLogs);
-  let highestSyncedBlockNumber = await db.syncStatus.getHighestSyncBlock(
+  await john.db.addNewBlock(syncableDBName, blockLogs);
+  let highestSyncedBlockNumber = await john.db.syncStatus.getHighestSyncBlock(
     syncableDBName
   );
   expect(highestSyncedBlockNumber).toBe(
@@ -77,8 +76,8 @@ test('sync databases', async () => {
 
   blockLogs[0].blockNumber = highestSyncedBlockNumber + 1;
 
-  await db.addNewBlock(syncableDBName, blockLogs);
-  highestSyncedBlockNumber = await db.syncStatus.getHighestSyncBlock(
+  await john.db.addNewBlock(syncableDBName, blockLogs);
+  highestSyncedBlockNumber = await john.db.syncStatus.getHighestSyncBlock(
     syncableDBName
   );
   expect(highestSyncedBlockNumber).toBe(
@@ -86,7 +85,7 @@ test('sync databases', async () => {
   );
 
   // Verify that 2 new blocks were added to SyncableDB
-  let result = await db.DisputeCrowdsourcerCompleted.toArray();
+  let result = await john.db.DisputeCrowdsourcerCompleted.toArray();
   expect(result[0].blockNumber).toEqual(
     originalHighestSyncedBlockNumbers[syncableDBName] + 1
   );
@@ -94,18 +93,19 @@ test('sync databases', async () => {
   expect(result[1].blockNumber).toEqual(
     originalHighestSyncedBlockNumbers[syncableDBName] + 2
   );
-  expect(result[1].logIndex).toEqual(1);
 
-  await db.logFilters.onBlockRemoved(highestSyncedBlockNumber - 1);
 
+  await john.db.logFilters.onBlockRemoved(highestSyncedBlockNumber - 1);
   // Verify that newest 2 blocks were removed from SyncableDB
-  result = await db.DisputeCrowdsourcerCompleted.toArray();
+  result = await john.db.DisputeCrowdsourcerCompleted.toArray();
+
   expect(result).toEqual([]);
 
-  expect(await db.syncStatus.getHighestSyncBlock(syncableDBName)).toBe(
+
+  expect(await john.db.syncStatus.getHighestSyncBlock(syncableDBName)).toBe(
     originalHighestSyncedBlockNumbers[syncableDBName]
   );
-  expect(await db.syncStatus.getHighestSyncBlock(metaDBName)).toBe(
+  expect(await john.db.syncStatus.getHighestSyncBlock(metaDBName)).toBe(
     originalHighestSyncedBlockNumbers[metaDBName]
   );
 });
@@ -178,8 +178,6 @@ test('rollback derived database', async () => {
     new BigNumber(0),
     expirationTimeInSeconds
   );
-
-  await john.sync();
 
   // Sync
   await john.sync();
