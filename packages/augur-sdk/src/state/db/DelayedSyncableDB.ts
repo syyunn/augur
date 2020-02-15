@@ -44,7 +44,7 @@ export class DelayedSyncableDB extends BaseSyncableDB {
     this.syncing = true;
 
     const result = await this.table.toArray();
-    this.bulkUpsertDocuments(result);
+    await this.bulkUpsertDocuments(result);
 
     this.syncing = false;
   }

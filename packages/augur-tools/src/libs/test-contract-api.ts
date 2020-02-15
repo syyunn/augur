@@ -85,8 +85,6 @@ export class TestContractAPI extends ContractAPI {
   }
 
   sync = async (highestBlockNumberToSync?: number) => {
-
-    if(!highestBlockNumberToSync)
     await this.bulkSyncStrategy.start(
       0,
       highestBlockNumberToSync || await this.provider.getBlockNumber(),

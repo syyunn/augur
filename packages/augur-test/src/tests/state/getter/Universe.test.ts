@@ -20,7 +20,7 @@ import { makeProvider } from '../../../libs';
 describe('State API :: Universe :: ', () => {
   let john: TestContractAPI;
   let mary: TestContractAPI;
-  let bob: ContractAPI;
+  let bob: TestContractAPI;
 
   let baseProvider: TestEthersProvider;
 
