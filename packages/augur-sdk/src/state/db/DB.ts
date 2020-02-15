@@ -102,7 +102,7 @@ export class DB {
     { EventName: 'ProfitLossChanged', indexes: ['[universe+account+timestamp]', 'account'] },
     { EventName: 'ReportingParticipantDisavowed', indexes: [] },
     { EventName: 'TimestampSet', indexes: ['newTimestamp'] },
-    { EventName: 'TokenBalanceChanged', indexes: ['[universe+owner+tokenType]'], primaryKey: '[owner+token]' },
+    { EventName: 'TokenBalanceChanged', indexes: ['[owner+tokenType]'], primaryKey: '[universe+owner+tokenType]' },
     { EventName: 'TokensMinted', indexes: [] },
     { EventName: 'TokensTransferred', indexes: [] },
     { EventName: 'TradingProceedsClaimed', indexes: ['timestamp'] },
@@ -235,10 +235,6 @@ export class DB {
 
   /**
    * Syncs generic events and user-specific events with blockchain and updates MetaDB info.
-   *
-   * @param {Augur} augur Augur object with which to sync
-   * @param {number} chunkSize Number of blocks to retrieve at a time when syncing logs
-   * @param {number} blockstreamDelay Number of blocks by which blockstream is behind the blockchain
    */
   async sync(): Promise<void> {
     const dbSyncPromises = [];
@@ -251,6 +247,14 @@ export class DB {
           highestAvailableBlockNumber,
         ),
       );
+
+      if (genericEventDBDescription.primaryKey) {
+        dbSyncPromises.push(
+          this.syncableDatabases[`${genericEventDBDescription.EventName}Rollup`].sync(
+            highestAvailableBlockNumber,
+          ),
+        );
+      }
     }
 
     await Promise.all(dbSyncPromises);

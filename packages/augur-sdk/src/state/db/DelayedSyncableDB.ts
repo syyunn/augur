@@ -30,7 +30,7 @@ export class DelayedSyncableDB extends BaseSyncableDB {
   }
 
   protected async bulkUpsertDocuments(documents: BaseDocument[]): Promise<void> {
-    for (let document of documents) {
+    for (const document of documents) {
       const documentID = this.getIDValue(document);
       await this.upsertDocument(documentID, document);
     }
