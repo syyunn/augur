@@ -71,7 +71,7 @@ export class DB {
   private syncableDatabases: { [dbName: string]: BaseSyncableDB } = {};
   private disputeDatabase: DisputeDatabase;
   private currentOrdersDatabase: CurrentOrdersDatabase;
-  private marketDatabase: MarketDB;
+  public marketDatabase: MarketDB;
   private cancelledOrdersDatabase: CancelledOrdersDB;
   private parsedOrderEventDatabase: ParsedOrderEventDB;
   private zeroXOrders: ZeroXOrders;
@@ -102,7 +102,7 @@ export class DB {
     { EventName: 'ProfitLossChanged', indexes: ['[universe+account+timestamp]', 'account'] },
     { EventName: 'ReportingParticipantDisavowed', indexes: [] },
     { EventName: 'TimestampSet', indexes: ['newTimestamp'] },
-    { EventName: 'TokenBalanceChanged', indexes: ['[owner+tokenType]'], primaryKey: '[universe+owner+tokenType]' },
+    { EventName: 'TokenBalanceChanged', indexes: ['[universe+owner+tokenType]'], primaryKey: '[owner+token]' },
     { EventName: 'TokensMinted', indexes: [] },
     { EventName: 'TokensTransferred', indexes: [] },
     { EventName: 'TradingProceedsClaimed', indexes: ['timestamp'] },

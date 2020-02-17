@@ -42,14 +42,14 @@ export abstract class AbstractTable {
     for (const document of documents) {
       delete document.constructor;
     }
-    await this.table.bulkPut(documents);
+    await this.table.bulkAdd(documents);
   }
 
   protected async upsertDocument(documentID: ID, document: BaseDocument): Promise<void> {
     delete document.constructor;
     const result = await this.table.update(documentID, document);
     if (result === 0) {
-      await this.table.put(document);
+      await this.table.add(document);
     }
   }
 

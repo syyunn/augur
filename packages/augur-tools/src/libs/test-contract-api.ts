@@ -85,8 +85,11 @@ export class TestContractAPI extends ContractAPI {
   }
 
   sync = async (highestBlockNumberToSync?: number) => {
+    let startingSyncBlock = await this.db.syncStatus.getLowestSyncingBlockForAllDBs();
+    if (startingSyncBlock == -1) startingSyncBlock = 0;
+    console.log(`SYNCING FROM ${startingSyncBlock}`);
     await this.bulkSyncStrategy.start(
-      0,
+      startingSyncBlock,
       highestBlockNumberToSync || await this.provider.getBlockNumber(),
     );
 

@@ -140,6 +140,11 @@ test('rollback derived database', async () => {
   johnGnosis.initialize(john);
   johnConnector.initialize(john.augur, john.db);
 
+  Object.defineProperty(john.db.marketDatabase, 'syncing', {
+    get: jest.fn(() => false),
+    set: jest.fn()
+  });
+
   await john.approveCentralAuthority();
 
   // Create a market
@@ -166,6 +171,10 @@ test('rollback derived database', async () => {
 
   await john.sync();
   let marketData = await john.db.Markets.get(market.address);
+
+  // Confirm the invalidFilter has not been set due to this order on the market data
+  await expect(marketData.invalidFilter).toEqual(0);
+
   const firstTradeBlock = marketData.blockNumber;
 
   // Place a trade on Invalid
