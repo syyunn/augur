@@ -239,6 +239,8 @@ describe('State API :: Markets :: ', () => {
         addresses
       );
       bob = await TestContractAPI.userWrapper(ACCOUNTS[2], provider, addresses);
+
+      await john.sync();
     });
 
     test('should require marketId', async () => {
