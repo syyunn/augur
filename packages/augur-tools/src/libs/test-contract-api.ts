@@ -10,6 +10,7 @@ import {
   ZeroX,
 } from '@augurproject/sdk';
 import { DB } from '@augurproject/sdk/build/state/db/DB';
+import { BlockAndLogStreamerSyncStrategy } from '@augurproject/sdk/build/state/sync/BlockAndLogStreamerSyncStrategy';
 import { BulkSyncStrategy } from '@augurproject/sdk/build/state/sync/BulkSyncStrategy';
 import { BigNumber } from 'bignumber.js';
 import { ContractDependenciesGnosis } from 'contract-dependencies-gnosis/build';
@@ -22,6 +23,8 @@ import { API } from '@augurproject/sdk/build/state/getter/API';
 export class TestContractAPI extends ContractAPI {
   protected bulkSyncStrategy: BulkSyncStrategy;
   api: API;
+  blockAndLogStreamerSyncStrategy: BlockAndLogStreamerSyncStrategy;
+  hasBulkSynced = false;
 
   static async userWrapper(
     account: Account,
@@ -82,17 +85,25 @@ export class TestContractAPI extends ContractAPI {
       db.logFilters.onLogsAdded,
       augur.contractEvents.parseLogs,
     );
+
+    BlockAndLogStreamerSyncStrategy.create(provider, db.logFilters, augur.contractEvents.parseLogs)
   }
 
   sync = async (highestBlockNumberToSync?: number) => {
-    let startingSyncBlock = await this.db.syncStatus.getLowestSyncingBlockForAllDBs();
-    if (startingSyncBlock == -1) startingSyncBlock = 0;
-    console.log(`SYNCING FROM ${startingSyncBlock}`);
-    await this.bulkSyncStrategy.start(
-      startingSyncBlock,
-      highestBlockNumberToSync || await this.provider.getBlockNumber(),
-    );
+    if(this.hasBulkSynced) {
+      const block = await this.provider.getBlock(highestBlockNumberToSync || 'latest');
+      await this.blockAndLogStreamerSyncStrategy.onNewBlock({
+        ...block,
+        number: block.number.toString(),
+      });
+    } else {
+      await this.bulkSyncStrategy.start(
+        0,
+        highestBlockNumberToSync || await this.provider.getBlockNumber(),
+      );
 
-    await this.db.sync();
+      await this.db.sync();
+      this.hasBulkSynced = true;
+    }
   };
 }
