@@ -9,6 +9,7 @@ import {
   EmptyConnector,
   ZeroX,
 } from '@augurproject/sdk';
+import { SubscriptionEventName } from '@augurproject/sdk/build';
 import { DB } from '@augurproject/sdk/build/state/db/DB';
 import { BlockAndLogStreamerSyncStrategy } from '@augurproject/sdk/build/state/sync/BlockAndLogStreamerSyncStrategy';
 import { BulkSyncStrategy } from '@augurproject/sdk/build/state/sync/BulkSyncStrategy';
@@ -24,7 +25,7 @@ export class TestContractAPI extends ContractAPI {
   protected bulkSyncStrategy: BulkSyncStrategy;
   api: API;
   blockAndLogStreamerSyncStrategy: BlockAndLogStreamerSyncStrategy;
-  hasBulkSynced = false;
+  needsToBulkSync = true;
 
   static async userWrapper(
     account: Account,
@@ -86,24 +87,35 @@ export class TestContractAPI extends ContractAPI {
       augur.contractEvents.parseLogs,
     );
 
-    BlockAndLogStreamerSyncStrategy.create(provider, db.logFilters, augur.contractEvents.parseLogs)
+    this.blockAndLogStreamerSyncStrategy = BlockAndLogStreamerSyncStrategy.create(provider, db.logFilters, augur.contractEvents.parseLogs)
   }
 
   sync = async (highestBlockNumberToSync?: number) => {
-    if(this.hasBulkSynced) {
-      const block = await this.provider.getBlock(highestBlockNumberToSync || 'latest');
-      await this.blockAndLogStreamerSyncStrategy.onNewBlock({
-        ...block,
-        number: block.number.toString(),
-      });
-    } else {
+    const { number: blockNumber } = await this.provider.getBlock(highestBlockNumberToSync || 'latest');
+    if(this.needsToBulkSync) {
+      console.log('highestSyncedBlock', blockNumber);
       await this.bulkSyncStrategy.start(
         0,
-        highestBlockNumberToSync || await this.provider.getBlockNumber(),
+        blockNumber
       );
 
-      await this.db.sync();
-      this.hasBulkSynced = true;
+      await this.db.sync(0);
+
+      this.augur.events.emit(SubscriptionEventName.BulkSyncComplete, {
+        eventName: SubscriptionEventName.BulkSyncComplete,
+      });
+
+      this.needsToBulkSync = false;
+    } else {
+      let highestSyncedBlock = await this.db.getSyncStartingBlock();
+      while(highestSyncedBlock <= blockNumber) {
+        const block = await this.provider.getBlock(highestSyncedBlock);
+        await this.blockAndLogStreamerSyncStrategy.onNewBlock({
+          ...block,
+          number: block.number.toString(),
+        });
+        highestSyncedBlock++;
+      }
     }
   };
 }
