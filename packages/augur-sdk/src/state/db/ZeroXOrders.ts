@@ -224,7 +224,7 @@ export class ZeroXOrders extends AbstractTable {
       }, signedOrder);
     });
 
-    if (ordersToAdd.length > 0) this.augur.zeroX.addOrders(ordersToAdd);
+    if (ordersToAdd.length > 0) await this.augur.zeroX.addOrders(ordersToAdd);
     console.log(`Synced ${orders.length } ZeroX Orders`);
   }
 
