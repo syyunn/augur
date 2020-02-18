@@ -171,10 +171,12 @@ export class BlockAndLogStreamerSyncStrategy extends AbstractSyncStrategy
 
     for (let i = 0; i < blocksToEmit.length; i++) {
       const currentBlock = blocksToEmit[i];
-      const logsToEmit = logs.filter(
-        log => (new BigNumber(currentBlock.number)).toNumber() === log.blockNumber
-      ).filter(item => address.includes(_.toLower(item.address)));
       const currentBlockNumber = (new BigNumber(currentBlock.number)).toNumber();
+
+      const logsToEmit = logs.filter(
+        log => currentBlockNumber === (new BigNumber(log.blockNumber)).toNumber()
+      ).filter(item => address.includes(_.toLower(item.address)));
+
       await this.onLogsAdded(currentBlockNumber, this.parseLogs(logsToEmit));
     }
   };
