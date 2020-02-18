@@ -108,9 +108,10 @@ export class TestContractAPI extends ContractAPI {
       this.needsToBulkSync = false;
     } else {
       let highestSyncedBlock = await this.db.getSyncStartingBlock();
+      highestSyncedBlock++;
       while(highestSyncedBlock <= blockNumber) {
         const block = await this.provider.getBlock(highestSyncedBlock);
-        await this.blockAndLogStreamerSyncStrategy.onNewBlock({
+        await this.blockAndLogStreamerSyncStrategy.onBlockAdded({
           ...block,
           number: block.number.toString(),
         });

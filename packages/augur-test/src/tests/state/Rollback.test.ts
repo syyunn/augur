@@ -1,4 +1,3 @@
-import { WSClient } from '@0x/mesh-rpc-client';
 import { ContractAddresses } from '@augurproject/artifacts';
 import { EthersProvider } from '@augurproject/ethersjs-provider';
 import { Augur, Connectors } from '@augurproject/sdk';
@@ -13,8 +12,7 @@ import {
   makeTestAugur,
   MockGnosisRelayAPI,
 } from '../../libs';
-import { MockBrowserMesh } from '../../libs/MockBrowserMesh';
-import { MockMeshServer, stopServer } from '../../libs/MockMeshServer';
+import { sleep } from '@augurproject/core/build/libraries/HelperFunctions';
 
 const mock = makeDbMock();
 let augur: Augur;
@@ -116,10 +114,6 @@ test('rollback derived database', async () => {
   let provider: EthersProvider;
   let addresses: ContractAddresses;
 
-  const { port } = await MockMeshServer.create();
-  const meshClient = new WSClient(`ws://localhost:${port}`);
-  const meshBrowser = new MockBrowserMesh(meshClient);
-
   const seed = await loadSeedFile(defaultSeedPath);
   addresses = seed.addresses;
   provider = await makeProvider(seed, ACCOUNTS);
@@ -131,9 +125,7 @@ test('rollback derived database', async () => {
     provider,
     addresses,
     johnConnector,
-    johnGnosis,
-    meshClient,
-    meshBrowser
+    johnGnosis
   );
   expect(john).toBeDefined();
 
@@ -147,63 +139,54 @@ test('rollback derived database', async () => {
 
   await john.approveCentralAuthority();
 
-  // Create a market
-  const market = await john.createReasonableMarket([
-    stringTo32ByteHex('A'),
-    stringTo32ByteHex('B'),
-  ]);
-  const expirationTimeInSeconds = new BigNumber(
-    Math.round(+new Date() / 1000).valueOf()
-  ).plus(10000);
+  await john.repFaucet(new BigNumber(1e20));
 
   await john.sync();
 
-  // Place first trade
-  await john.placeBasicYesNoZeroXTrade(
-    0,
-    market.address,
-    1,
-    new BigNumber(2000),
-    new BigNumber(0.78),
-    new BigNumber(0),
-    expirationTimeInSeconds
+  // Buy PTs
+  const curDisputeWindowAddress = await john.getOrCreateCurrentDisputeWindow(
+    false
+  );
+  const curDisputeWindow = await john.augur.contracts.disputeWindowFromAddress(
+    curDisputeWindowAddress
+  );
+  const amountParticipationTokens = new BigNumber(1e18);
+  await john.buyParticipationTokens(
+    curDisputeWindow.address,
+    amountParticipationTokens
   );
 
   await john.sync();
-  let marketData = await john.db.Markets.get(market.address);
 
-  // Confirm the invalidFilter has not been set due to this order on the market data
-  await expect(marketData.invalidFilter).toEqual(0);
+  // Confirm balance
+  let ptBalanceRecord = await john.db.TokenBalanceChangedRollup.get([john.account.publicKey, curDisputeWindowAddress]);
+  let ptBalance = new BigNumber(ptBalanceRecord.balance);
+  await expect(ptBalance).toEqual(amountParticipationTokens);
 
-  const firstTradeBlock = marketData.blockNumber;
+  // Rollback
+  await john.db.rollback(ptBalanceRecord.blockNumber);
 
-  // Place a trade on Invalid
-  await john.placeBasicYesNoZeroXTrade(
-    0,
-    market.address,
-    0,
-    new BigNumber(2000),
-    new BigNumber(0.78),
-    new BigNumber(0),
-    expirationTimeInSeconds
+  // Confirm nothing there
+  ptBalanceRecord = await john.db.TokenBalanceChangedRollup.get([john.account.publicKey, curDisputeWindowAddress]);
+  await expect(ptBalanceRecord).toBeFalsy();
+
+  // Buy Pts again. Since we told the DB to rollback but in reality no log removal occured the balance will be 2x
+  await john.buyParticipationTokens(
+    curDisputeWindow.address,
+    amountParticipationTokens
   );
 
-  // Sync
   await john.sync();
-  marketData = await john.db.Markets.get(market.address);
 
-  // Confirm the invalidFilter has been set due to this order on the market data
-  await expect(marketData.invalidFilter).toEqual(1);
+  ptBalanceRecord = await john.db.TokenBalanceChangedRollup.get([john.account.publicKey, curDisputeWindowAddress]);
+  ptBalance = new BigNumber(ptBalanceRecord.balance);
+  await expect(ptBalance).toEqual(amountParticipationTokens.multipliedBy(2));
 
-  // Now we'll rollback the block this update came in
-  await john.db.rollback(firstTradeBlock);
+  // Rollback second purchase
+  await john.db.rollback(ptBalanceRecord.blockNumber);
 
-  marketData = await john.db.Markets.get(market.address);
-
-  // Confirm the invalidFilter has been set due to this order on the market data
-  await expect(marketData.invalidFilter).toEqual(0);
-
-  // cleanup
-  meshClient.destroy();
-  stopServer();
+  // Confirm first balance
+  ptBalanceRecord = await john.db.TokenBalanceChangedRollup.get([john.account.publicKey, curDisputeWindowAddress]);
+  ptBalance = new BigNumber(ptBalanceRecord.balance);
+  await expect(ptBalance).toEqual(amountParticipationTokens);
 });

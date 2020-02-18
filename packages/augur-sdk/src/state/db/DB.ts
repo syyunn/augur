@@ -241,6 +241,19 @@ export class DB {
       highestAvailableBlockNumber = await this.augur.provider.getBlockNumber();
     }
 
+    const dbSyncPromises = [];
+    for (const genericEventDBDescription of this.genericEventDBDescriptions) {
+      if (genericEventDBDescription.primaryKey) {
+        dbSyncPromises.push(
+          this.syncableDatabases[`${genericEventDBDescription.EventName}Rollup`].sync(
+            highestAvailableBlockNumber,
+          ),
+        );
+      }
+    }
+
+    await Promise.all(dbSyncPromises);
+
     // Derived DBs are synced after generic log DBs complete
     console.log('Syncing derived DBs');
 
@@ -259,10 +272,18 @@ export class DB {
    */
   rollback = async (blockNumber: number): Promise<void> => {
     const dbRollbackPromises = [];
-    // Perform rollback on SyncableDBs & UserSyncableDBs
+    // Perform rollback on SyncableDBs & rollups
     for (const genericEventDBDescription of this.genericEventDBDescriptions) {
       const dbName = genericEventDBDescription.EventName;
       dbRollbackPromises.push(this.syncableDatabases[dbName].rollback(blockNumber));
+
+      if (genericEventDBDescription.primaryKey) {
+        dbRollbackPromises.push(
+          this.syncableDatabases[`${genericEventDBDescription.EventName}Rollup`].rollback(
+            blockNumber,
+          ),
+        );
+      }
     }
 
     // Perform rollback on derived DBs
