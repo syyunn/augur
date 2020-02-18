@@ -263,10 +263,6 @@ describe('WarpController', () => {
         }),
       ]);
     });
-
-    test('should not overlap', () => {
-
-    });
   });
 
   describe('structure', () => {
