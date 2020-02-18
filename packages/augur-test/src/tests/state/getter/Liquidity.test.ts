@@ -138,6 +138,7 @@ describe('State API :: Liquidity', () => {
       });
 
       await john.sync();
+      await john.db.marketDatabase.syncOrderBooks([market.address])
       marketData = await john.db.Markets.get(market.address);
 
       await expect(marketData.liquidity[10]).toEqual(

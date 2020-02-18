@@ -335,6 +335,7 @@ describe('State API :: General', () => {
       await sleep(300);
 
       await john.sync();
+      await john.db.marketDatabase.syncOrderBooks([yesNoMarket1.address, yesNoMarket2.address, yesNoMarket3.address])
 
       marketList = await john.api.route('getMarkets', {
         universe: addresses.Universe,
@@ -383,6 +384,7 @@ describe('State API :: General', () => {
       );
 
       await john.sync();
+      await john.db.marketDatabase.syncOrderBooks([yesNoMarket1.address])
 
       marketList = await john.api.route('getMarkets', {
         universe: addresses.Universe,
@@ -493,6 +495,7 @@ describe('State API :: General', () => {
 
       // Invalid markets that pass the spread filter should appear as Recently Depleted Liquidity
       await john.sync();
+      await john.db.marketDatabase.syncOrderBooks([yesNoMarket3.address])
 
       marketList = await john.api.route('getMarkets', {
         universe: addresses.Universe,
