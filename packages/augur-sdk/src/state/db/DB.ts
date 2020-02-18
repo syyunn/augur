@@ -237,15 +237,15 @@ export class DB {
    * Syncs generic events and user-specific events with blockchain and updates MetaDB info.
    */
   async sync(highestAvailableBlockNumber?: number): Promise<void> {
+    const dbSyncPromises = [];
     if(!highestAvailableBlockNumber) {
       highestAvailableBlockNumber = await this.augur.provider.getBlockNumber();
     }
 
-    const dbSyncPromises = [];
-    for (const genericEventDBDescription of this.genericEventDBDescriptions) {
-      if (genericEventDBDescription.primaryKey) {
+    for (const {EventName:dbName, primaryKey } of this.genericEventDBDescriptions) {
+      if (primaryKey) {
         dbSyncPromises.push(
-          this.syncableDatabases[`${genericEventDBDescription.EventName}Rollup`].sync(
+          this.syncableDatabases[`${dbName}Rollup`].sync(
             highestAvailableBlockNumber,
           ),
         );

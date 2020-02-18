@@ -89,11 +89,11 @@ export function buildSyncStrategies(client:Augur, db:Promise<DB>, provider: Ethe
 
     // Check on each new block to see if we need to generate a checkpoint.
     client.events.on(SubscriptionEventName.NewBlock, async (newBlock) => {
-      const block = await provider.getBlock(newBlock.lastSyncedBlockNumber)
-      warpController.onNewBlock(block);
+      const block = await provider.getBlock(newBlock.lastSyncedBlockNumber);
+      await warpController.onNewBlock(block);
     });
 
-    blockAndLogStreamerSyncStrategy.start(endBulkSyncBlockNumber);
+    await blockAndLogStreamerSyncStrategy.start(endBulkSyncBlockNumber);
   };
 }
 
