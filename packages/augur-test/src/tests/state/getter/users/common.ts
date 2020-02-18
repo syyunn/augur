@@ -69,9 +69,6 @@ export interface AllState {
 }
 
 export interface SomeState {
-  db: Promise<DB>;
-  api: API;
-
   john: TestContractAPI;
   mary: TestContractAPI;
 }
@@ -79,21 +76,6 @@ export interface SomeState {
 export async function _beforeAll(): Promise<AllState> {
   const seed = await loadSeedFile(defaultSeedPath);
   const baseProvider = await makeProvider(seed, ACCOUNTS);
-  const addresses = baseProvider.getContractAddresses();
-
-  const john = await TestContractAPI.userWrapper(
-    ACCOUNTS[0],
-    baseProvider,
-    addresses
-  );
-  const mary = await TestContractAPI.userWrapper(
-    ACCOUNTS[1],
-    baseProvider,
-    addresses
-  );
-  await john.approveCentralAuthority();
-  await mary.approveCentralAuthority();
-
   return { baseProvider };
 }
 
@@ -112,12 +94,10 @@ export async function _beforeEach(allState: AllState): Promise<SomeState> {
     provider,
     addresses
   );
-  const db = makeDbMock().makeDB(john.augur);
-  const api = new API(john.augur, db);
+  await john.approveCentralAuthority();
+  await mary.approveCentralAuthority();
 
   return {
-    db,
-    api,
     john,
     mary,
   };
