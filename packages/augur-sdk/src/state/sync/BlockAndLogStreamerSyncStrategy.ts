@@ -9,7 +9,6 @@ import {
   BlockAndLogStreamer,
   Log as BlockStreamLog,
 } from 'ethereumjs-blockstream';
-import { BigNumber } from 'ethers/utils';
 import * as _ from 'lodash';
 import { LogFilterAggregatorInterface } from '../logs/LogFilterAggregator';
 import { AbstractSyncStrategy } from './AbstractSyncStrategy';
