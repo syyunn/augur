@@ -263,6 +263,10 @@ describe('WarpController', () => {
         }),
       ]);
     });
+
+    test('should not overlap', () => {
+
+    });
   });
 
   describe('structure', () => {
@@ -428,7 +432,7 @@ describe('WarpController', () => {
           firstCheckpointBlockHeaders
         );
 
-        await fixtureBulkSyncStrategy.start(0, blockNumber);
+        const firstBlockNumber = await fixtureBulkSyncStrategy.start(0, blockNumber);
         const fixtureMarketList = await fixtureApi.route('getMarkets', {
           universe: addresses.Universe,
         });
@@ -443,7 +447,7 @@ describe('WarpController', () => {
         // populate db. Admittedly this just proves the logs were loaded.
         blockNumber = await warpSyncStrategy.start(secondCheckpointFileHash);
 
-        await fixtureBulkSyncStrategy.start(0, blockNumber);
+        await fixtureBulkSyncStrategy.start(firstBlockNumber + 1, blockNumber);
         const rolledbackFixtureMarketList = await fixtureApi.route(
           'getMarkets',
           {
