@@ -30,18 +30,6 @@ jest.mock('@augurproject/sdk/build/state/create-api', () => {
           john.augur.contractEvents.getEventContractAddress,
       });
 
-      const blockAndLogStreamerListener = BlockAndLogStreamerSyncStrategy.create(
-        provider,
-        logFilterAggregator,
-        john.augur.contractEvents.parseLogs
-      );
-
-      const controller = new Controller(
-        john.augur,
-        Promise.resolve(john.db),
-        logFilterAggregator
-      );
-
       return john.api;
     },
   };
@@ -72,6 +60,8 @@ beforeAll(async () => {
 });
 
 test('SingleThreadConnector :: Should route correctly and handle events, extraInfo', async done => {
+  await john.sync();
+
   const yesNoMarket1 = await john.createYesNoMarket({
     endTime: (await john.getTimestamp()).plus(SECONDS_IN_A_DAY),
     feePerCashInAttoCash: new BigNumber(10).pow(18).div(20), // 5% creator fee
@@ -84,12 +74,13 @@ test('SingleThreadConnector :: Should route correctly and handle events, extraIn
   await connector.on(
     SubscriptionEventName.MarketCreated,
     async (arg: MarketCreated): Promise<void> => {
+      console.log('SubscriptionEventName.MarketCreated',
+        SubscriptionEventName.MarketCreated);
+
       expect(arg).toHaveProperty(
         'extraInfo',
         '{"categories": ["yesNo category 1", "yesNo category 2"], "description": "yesNo description 1", "longDescription": "yesNo longDescription 1"}'
       );
-
-      await john.sync();
 
       const getMarkets = connector.bindTo(Markets.getMarkets);
       const marketList = await getMarkets({
