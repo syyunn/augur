@@ -23,7 +23,7 @@ import {
   selectUserMarketOpenOrders,
   selectOrderCancellationState,
   selectPendingOrdersState,
-} from 'store/select-state';
+} from 'appStore/select-state';
 import { createSelector } from 'reselect';
 
 function selectMarketsDataStateMarket(state, marketId) {

@@ -1,6 +1,6 @@
 import { constructBasicTransaction } from "modules/transactions/actions/construct-transaction";
 import unpackTransactionParameters from "modules/transactions/helpers/unpack-transaction-parameters";
-import { selectCurrentTimestampInSeconds } from "store/select-state";
+import { selectCurrentTimestampInSeconds } from "appStore/select-state";
 
 import makePath from "modules/routes/helpers/make-path";
 

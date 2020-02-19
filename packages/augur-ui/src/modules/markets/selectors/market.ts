@@ -7,7 +7,7 @@ import {
   ZERO,
 } from 'modules/common/constants';
 import store, { AppState } from 'store';
-import { selectMarketInfosState } from 'store/select-state';
+import { selectMarketInfosState } from 'appStore/select-state';
 import { MarketData, OutcomeFormatted } from 'modules/types';
 import { convertMarketInfoToMarketData } from 'utils/convert-marketInfo-marketData';
 import { createSelector } from 'reselect';

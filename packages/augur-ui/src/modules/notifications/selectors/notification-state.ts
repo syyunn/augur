@@ -6,7 +6,7 @@ import {
   selectMarketInfosState,
   selectPendingLiquidityOrders,
   selectReadNotificationState,
-} from 'store/select-state';
+} from 'appStore/select-state';
 import { MarketReportingState } from '@augurproject/sdk';
 import {
   CLAIM_REPORTING_FEES_TITLE,

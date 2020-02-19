@@ -7,7 +7,7 @@ import {
   selectPendingOrdersState,
   selectLoginAccountAddress,
   selectAccountPositionsState
-} from "store/select-state";
+} from "appStore/select-state";
 import { createSelector } from "reselect";
 import { MarketData } from "modules/types";
 

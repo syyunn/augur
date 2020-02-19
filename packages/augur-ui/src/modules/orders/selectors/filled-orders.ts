@@ -6,7 +6,7 @@ import {
   selectMarketInfosState,
   selectMarketTradingHistoryState,
   selectLoginAccountAddress,
-} from "store/select-state";
+} from "appStore/select-state";
 import createCachedSelector from "re-reselect";
 import { selectUserOpenOrders } from "modules/orders/selectors/user-open-orders";
 import { isSameAddress } from "utils/isSameAddress";

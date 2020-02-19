@@ -4,7 +4,7 @@ import { getLastTradeTimestamp } from "modules/portfolio/helpers/get-last-trade-
 import {
   selectMarketTradingHistoryState,
   selectAccountPositionsState,
-} from "store/select-state";
+} from "appStore/select-state";
 
 export default function() {
   return marketsPositionsRecentlyTraded(store.getState());

@@ -5,7 +5,7 @@ import Stats from 'modules/account/components/stats';
 import { AppState } from 'store';
 import { ThunkDispatch } from 'redux-thunk';
 import { Action } from 'redux';
-import { selectCurrentTimestampInSeconds } from 'store/select-state';
+import { selectCurrentTimestampInSeconds } from 'appStore/select-state';
 import { updatePlatformTimeframeData } from 'modules/account/actions/update-platform-timeframe-data';
 
 const mapStateToProps = (state: AppState) => ({

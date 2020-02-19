@@ -25,7 +25,7 @@ import {
   SCALAR_MODAL_SEEN,
 } from 'modules/common/constants';
 import { windowRef } from 'utils/window-ref';
-import { selectCurrentTimestampInSeconds } from 'store/select-state';
+import { selectCurrentTimestampInSeconds } from 'appStore/select-state';
 import { updateModal } from 'modules/modal/actions/update-modal';
 import { closeModal } from 'modules/modal/actions/close-modal';
 import { loadMarketTradingHistory } from 'modules/markets/actions/market-trading-history-management';

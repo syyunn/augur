@@ -10,7 +10,7 @@ import {
   selectMarketInfosState,
   selectCurrentTimestamp,
   selectMarketTradingHistoryState,
-} from 'store/select-state';
+} from 'appStore/select-state';
 import { selectPriceTimeSeries } from 'modules/markets/selectors/price-time-series';
 
 function selectMarketsDataStateMarket(state, marketId) {
