@@ -7,7 +7,7 @@ import {
   getRepBalance,
   getLegacyRepBalance,
 } from 'modules/contracts/actions/contractCalls';
-import { AppState } from 'store';
+import { AppState } from 'appStore';
 import { ThunkDispatch, ThunkAction } from 'redux-thunk';
 import { Action } from 'redux';
 import { formatAttoRep } from 'utils/format-number';
@@ -47,7 +47,7 @@ function updateBalances(
     const legacyRep = formatAttoRep(legacyAttoRep).value;
     const dai = amounts[1];
     const eth = amounts[2];
-    dispatch(addedDaiEvent(dai)); 
+    dispatch(addedDaiEvent(dai));
     dispatch(updateLoginAccount({ balances: { attoRep, rep, dai, eth, legacyAttoRep, legacyRep } }));
     return callback(null, { rep, dai, eth });
   });

@@ -1,6 +1,6 @@
 import { createSelector } from 'reselect';
 
-import store from 'store';
+import store from 'appStore';
 import {
   selectAccountPositionsState,
   selectMarketInfosState,

@@ -4,7 +4,7 @@ import MarketChartsPane from "modules/market-charts/components/market-charts-pan
 import { selectMarket } from "modules/markets/selectors/market";
 import { getMarketAgeInDays } from "utils/format-date";
 import { selectCurrentTimestampInSeconds } from 'appStore/select-state';
-import { AppState } from "store";
+import { AppState } from 'appStore';
 import { ZERO } from "modules/common/constants";
 
 const mapStateToProps = (state: AppState, ownProps: any) => {

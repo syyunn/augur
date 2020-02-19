@@ -1,4 +1,4 @@
-import store from "store";
+import store from 'appStore';
 import { createBigNumber } from "utils/create-big-number";
 import { BUY, SELL, ZERO } from "modules/common/constants";
 import { convertUnixToFormattedDate } from "utils/format-date";

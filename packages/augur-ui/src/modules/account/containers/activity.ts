@@ -3,7 +3,7 @@ import { formatDai } from "utils/format-number";
 import Activity from "modules/account/components/activity";
 import { updatePlatformTimeframeData } from "modules/account/actions/update-platform-timeframe-data";
 import { selectCurrentTimestampInSeconds } from "appStore/select-state";
-import { AppState } from "store";
+import { AppState } from 'appStore';
 
 const mapStateToProps = (state: AppState) => {
   const value =

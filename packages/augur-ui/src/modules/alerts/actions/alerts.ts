@@ -1,4 +1,4 @@
-import store, { AppState } from 'store';
+import store, { AppState } from 'appStore';
 import setAlertText from 'modules/alerts/actions/set-alert-text';
 import { createBigNumber, BigNumber } from 'utils/create-big-number';
 import makePath from 'modules/routes/helpers/make-path';

@@ -1,4 +1,4 @@
-import store from "store";
+import store from 'appStore';
 import { selectMarket } from "modules/markets/selectors/market";
 import {
   selectMarketInfosState,

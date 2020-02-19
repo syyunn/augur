@@ -2,7 +2,7 @@ import { createSelector } from "reselect";
 import { selectLoginAccountState } from "appStore/select-state";
 import { formatRep, formatEther, formatDai } from "utils/format-number";
 import generateDownloadAccountLink from "modules/auth/helpers/generate-download-account-link";
-import store from "store";
+import store from 'appStore';
 
 import getValue from "utils/get-value";
 import { createBigNumber, BigNumber } from "utils/create-big-number";

@@ -1,6 +1,6 @@
 import { connect } from "react-redux";
 import { withRouter } from "react-router-dom";
-import { AppState } from "store";
+import { AppState } from 'appStore';
 import Stats from "modules/account/components/stats";
 import { ThunkDispatch } from "redux-thunk";
 import { Action } from "redux";

@@ -1,6 +1,6 @@
 import memoize from 'memoizee';
 import { createBigNumber } from 'utils/create-big-number';
-import store, { AppState } from 'store';
+import store, { AppState } from 'appStore';
 
 import { isOrderOfUser } from 'modules/orders/helpers/is-order-of-user';
 

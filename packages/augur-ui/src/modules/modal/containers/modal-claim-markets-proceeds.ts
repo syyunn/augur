@@ -18,7 +18,7 @@ import {
   ZERO,
 } from 'modules/common/constants';
 import { CLAIM_MARKETS_PROCEEDS } from 'modules/common/constants';
-import { AppState } from 'store';
+import { AppState } from 'appStore';
 import { ThunkDispatch } from 'redux-thunk';
 import { Action } from 'redux';
 import {

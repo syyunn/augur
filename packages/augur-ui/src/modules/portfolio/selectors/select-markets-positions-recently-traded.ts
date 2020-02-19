@@ -1,5 +1,5 @@
 import { createSelector } from "reselect";
-import store from "store";
+import store from 'appStore';
 import { getLastTradeTimestamp } from "modules/portfolio/helpers/get-last-trade-timestamp";
 import {
   selectMarketTradingHistoryState,

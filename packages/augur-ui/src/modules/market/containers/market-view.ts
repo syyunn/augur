@@ -38,7 +38,7 @@ import {
   getMarketAgeInDays,
   convertUnixToFormattedDate,
 } from 'utils/format-date';
-import { AppState } from 'store';
+import { AppState } from 'appStore';
 import { loadMarketOrderBook, clearOrderBook } from 'modules/orders/actions/load-market-orderbook';
 
 const mapStateToProps = (state: AppState, ownProps) => {

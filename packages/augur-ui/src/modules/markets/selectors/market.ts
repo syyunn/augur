@@ -6,7 +6,7 @@ import {
   SCALAR_DOWN_ID,
   ZERO,
 } from 'modules/common/constants';
-import store, { AppState } from 'store';
+import store, { AppState } from 'appStore';
 import { selectMarketInfosState } from 'appStore/select-state';
 import { MarketData, OutcomeFormatted } from 'modules/types';
 import { convertMarketInfoToMarketData } from 'utils/convert-marketInfo-marketData';
