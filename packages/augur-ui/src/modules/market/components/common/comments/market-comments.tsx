@@ -21,18 +21,11 @@ export class MarketComments extends Component {
     const myAddress = addresses[0];
     console.log('myAddress', myAddress);
 
-    // const box = await Box.create(window.ethereum);
-    const box = await Box.create(window.ethereum);
-    await box.auth([], { address: myAddress });
+    const box = await Box.openBox(myAddress, window.ethereum);
     console.log('box', box);
-    // const myProfile = await Box.getProfile(myAddress);
-    // console.log('myProfile', myProfile);
 
     box.onSyncDone(() => {
       this.setState({box, myAddress, isReady: true});
-      window.boxInstance = box;
-      window.box = Box;
-      console.log('box after sync', box);
     });
   };
 
