@@ -236,7 +236,7 @@ export class DB {
         genericEventDBDescription.EventName));
     }
 
-    return Math.min(...highestSyncBlocks);
+    return Math.min(...highestSyncBlocks) + 1;
   }
 
   /**
