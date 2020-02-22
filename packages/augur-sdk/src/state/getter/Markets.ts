@@ -168,6 +168,7 @@ export interface MarketInfo {
   template: ExtraInfoTemplate;
   isTemplate: boolean;
   mostLikelyInvalid: boolean;
+  isWarpSync: boolean;
 }
 
 export interface DisputeInfo {
@@ -605,7 +606,7 @@ export class Markets {
     marketData = marketData.slice(params.offset, params.offset + params.limit);
 
     // Get markets info to return
-    const marketsInfo: MarketInfo[] = await getMarketsInfo(db, marketData, reportingFeeDivisor);
+    const marketsInfo: MarketInfo[] = await getMarketsInfo(db, marketData, reportingFeeDivisor, augur.addresses.WarpSync);
 
     return {
       markets: marketsInfo,
@@ -758,7 +759,7 @@ export class Markets {
     const markets = await db.Markets.where("market").anyOfIgnoreCase(params.marketIds).toArray();
     const reportingFeeDivisor = await augur.contracts.universe.getOrCacheReportingFeeDivisor_();
 
-    return getMarketsInfo(db, markets, reportingFeeDivisor);
+    return getMarketsInfo(db, markets, reportingFeeDivisor, augur.addresses.WarpSync);
   }
 
   @Getter('getCategoriesParams')
@@ -1022,7 +1023,8 @@ function getPeriodStartTime(
 async function getMarketsInfo(
   db: DB,
   markets: MarketData[],
-  reportingFeeDivisor: BigNumber
+  reportingFeeDivisor: BigNumber,
+  warpSyncAddress: string
 ): Promise<MarketInfo[]> {
   const marketIds = _.map(markets, 'market');
   // TODO This is just used to get the last price. This can be acheived far more efficiently than pulling all order events for all time
@@ -1164,7 +1166,8 @@ async function getMarketsInfo(
       disavowed: marketData.disavowed,
       template,
       isTemplate: marketData.isTemplate,
-      mostLikelyInvalid: marketData.invalidFilter
+      mostLikelyInvalid: marketData.invalidFilter,
+      isWarpSync: marketData.designatedReporter.toLowerCase() === warpSyncAddress.toLowerCase()
     };
   });
 }

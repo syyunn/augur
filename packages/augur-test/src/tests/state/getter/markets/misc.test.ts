@@ -115,6 +115,33 @@ describe('State API :: Markets :: ', () => {
     expect(marketIds).toContain(yesNoMarket2.address);
   });
 
+  describe('warp sync markets', () => {
+    test('should tag warp sync markets', async () => {
+      await john.initializeUniverseForWarpSync();
+
+      const someHash = 'QmNLei78zWmzUdbeRB3CiUfAizWUrbeeZh5K1rhAQKChD2';
+      const universe = john.augur.contracts.universe;
+      const warpMarketAddresses = [
+        await john.createReasonableYesNoMarket(),
+        await john.reportWarpSyncMarket(someHash),
+        await john.reportWarpSyncMarket(someHash),
+      ].map((item, i) => expect.objectContaining({
+          id: item.address,
+          isWarpSync: (i !== 0)
+        })
+      );
+
+      await john.sync();
+
+      await expect(john.api.route('getMarkets', {
+        universe: universe.address,
+      })).resolves.toEqual({
+        markets: expect.arrayContaining(warpMarketAddresses),
+        meta: expect.any(Object)
+      });
+    });
+  });
+
   describe(':getMarketOrderBook', () => {
     const numShares = new BigNumber(10000000000000);
     const price = new BigNumber(22);
