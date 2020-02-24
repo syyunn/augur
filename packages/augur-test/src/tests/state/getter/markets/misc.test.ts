@@ -116,27 +116,59 @@ describe('State API :: Markets :: ', () => {
   });
 
   describe('warp sync markets', () => {
-    test('should tag warp sync markets', async () => {
+    let expectedMarkets;
+    beforeEach(async () => {
       await john.initializeUniverseForWarpSync();
 
       const someHash = 'QmNLei78zWmzUdbeRB3CiUfAizWUrbeeZh5K1rhAQKChD2';
-      const universe = john.augur.contracts.universe;
-      const warpMarketAddresses = [
+      expectedMarkets = [
         await john.createReasonableYesNoMarket(),
         await john.reportWarpSyncMarket(someHash),
         await john.reportWarpSyncMarket(someHash),
-      ].map((item, i) => expect.objectContaining({
+      ];
+
+      await john.sync();
+    });
+
+    test('should tag warp sync markets', async () => {
+      const universe = john.augur.contracts.universe;
+      const expectedMarketAssertions = expectedMarkets.map((item, i) => expect.objectContaining({
           id: item.address,
           isWarpSync: (i !== 0)
         })
       );
 
-      await john.sync();
-
       await expect(john.api.route('getMarkets', {
         universe: universe.address,
       })).resolves.toEqual({
-        markets: expect.arrayContaining(warpMarketAddresses),
+        markets: expect.arrayContaining(expectedMarketAssertions),
+        meta: expect.any(Object)
+      });
+    });
+
+    test('should be able to filter out warp sync markets', async () => {
+      const universe = john.augur.contracts.universe;
+      // We only care about the warpsync markets.
+      const expectedMarketAssertions = expectedMarkets.slice(0).map((item, i) => expect.objectContaining({
+          id: item.address,
+          isWarpSync: (i !== 0)
+        })
+      );
+
+      await expect(john.api.route('getMarkets', {
+        universe: universe.address,
+        includeWarpSyncMarkets: true,
+      })).resolves.toEqual({
+        markets: expect.arrayContaining(expectedMarketAssertions),
+        meta: expect.any(Object)
+      });
+
+
+      await expect(john.api.route('getMarkets', {
+        universe: universe.address,
+        includeWarpSyncMarkets: false,
+      })).resolves.not.toEqual({
+        markets: expect.arrayContaining(expectedMarketAssertions),
         meta: expect.any(Object)
       });
     });

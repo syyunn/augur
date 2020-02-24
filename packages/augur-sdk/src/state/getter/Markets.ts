@@ -90,6 +90,7 @@ const getMarketsParamsSpecific = t.intersection([
     maxEndTime: t.number,
     maxLiquiditySpread: GetMaxLiquiditySpread,
     includeInvalidMarkets: t.boolean,
+    includeWarpSyncMarkets: t.boolean,
     categories: t.array(t.string),
     sortBy: getMarketsSortBy,
     userPortfolioAddress: t.string,
@@ -582,6 +583,11 @@ export class Markets {
       return true;
     }).toArray();
 
+    // Must to this before we begin to calculate meta data. Will add the `isWarpSync` attribute later.
+    if(!params.includeWarpSyncMarkets) {
+      marketData = marketData.filter((item) => item.marketCreator.toLowerCase() === augur.addresses.WarpSync.toLowerCase());
+    }
+
     const filteredOutCount = numMarketDocs - marketData.length;
 
     const meta = {
@@ -606,7 +612,7 @@ export class Markets {
     marketData = marketData.slice(params.offset, params.offset + params.limit);
 
     // Get markets info to return
-    const marketsInfo: MarketInfo[] = await getMarketsInfo(db, marketData, reportingFeeDivisor, augur.addresses.WarpSync);
+    let marketsInfo: MarketInfo[] = await getMarketsInfo(db, marketData, reportingFeeDivisor, augur.addresses.WarpSync);
 
     return {
       markets: marketsInfo,
