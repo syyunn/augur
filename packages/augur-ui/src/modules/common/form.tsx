@@ -111,6 +111,23 @@ interface InputDropdownState {
   selected: boolean;
 }
 
+interface InputStakeProps {
+  onChange: Function;
+  default: string;
+  options: string[];
+  isMobileSmall?: boolean;
+  label: string;
+  className?: string;
+  onKeyPress?: Function;
+}
+
+interface InputStakeState {
+  label: string;
+  value: string;
+  showList: boolean;
+  selected: boolean;
+}
+
 interface FormDropdownProps {
   id?: string;
   onChange: any;
@@ -2205,6 +2222,33 @@ export class InputDropdown extends Component<
 }
 
 InputDropdown.defaultProps = {
+  onKeyPress: null,
+  className: null,
+};
+
+// https://www.w3schools.com/tags/tag_fieldset.asp
+export class InputStake extends Component<
+  InputStakeProps,
+  InputStakeState
+> {
+  render() {
+    const { className, label, options } = this.props;
+    const { showList, selected, label: currentLabel, value } = this.state;
+
+    return (
+      <div
+        ref={InputDropdown => {
+          this.refInputDropdown = InputDropdown;
+        }}
+        className={classNames(Styles.InputDropdown, className)}
+        onClick={this.toggleList}
+        onKeyPress={value => this.onKeyPress(value)}
+      ></div>
+    );
+  }
+}
+
+InputStake.defaultProps = {
   onKeyPress: null,
   className: null,
 };
