@@ -60,7 +60,7 @@
     },
     "gnosis": {
       "enabled": true,
-      "http": "https://gnosis.demo.augur.net/api/"
+      "http": "https://demo-gnosis.augur.net/api/"
     },
     "zeroX": {
       "rpc": {
