@@ -9,12 +9,12 @@ import {
   hashContracts
 } from '../libs/ganache';
 import { generateWarpSyncTestData } from '../libs/generate-warp-sync-test-data';
-import { FlashArguments, FlashSession } from "./flash";
+import { FlashArguments, FlashSession } from './flash';
 
 import { ethers } from 'ethers';
 import * as ganache from 'ganache-core';
 import { EthersProvider } from '@augurproject/ethersjs-provider';
-import { setAddresses, NetworkId } from '@augurproject/artifacts';
+import { updateConfig, NetworkId } from '@augurproject/artifacts';
 import * as fs from 'async-file';
 import { LogReplayer } from './replay-logs';
 import { LogReplayerV1 } from './replay-logs-v1';
@@ -192,7 +192,7 @@ export function addGanacheScripts(flash: FlashSession) {
       },
       {
         name: 'write-artifacts',
-        description: "Overwrite addresses.json to include seed file's addresses.",
+        description: "Overwrite environments/local.json to include seed file's addresses.",
         flag: true,
       },
     ],
@@ -219,7 +219,7 @@ export function addGanacheScripts(flash: FlashSession) {
 
       if (writeArtifacts) {
         const networkId = await this.provider.getNetworkId() as NetworkId;
-        await setAddresses(networkId, seed.addresses);
+        await updateConfig('local', { networkId, addresses: seed.addresses});
       }
     },
   });
@@ -271,7 +271,7 @@ export function addGanacheScripts(flash: FlashSession) {
 
       console.log('Creating seed file.');
       await this.call('ganache', { internal: true });
-      await this.call('deploy', { writeArtifacts: writeArtifacts, timeControlled: true });
+      await this.call('deploy', { writeArtifacts, timeControlled: true });
       await this.call('make-seed', { name, filepath, save: true });
     },
   });

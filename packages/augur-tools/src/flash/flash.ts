@@ -1,11 +1,10 @@
-import { ContractAddresses, NetworkId } from '@augurproject/artifacts';
+import { ContractAddresses, NetworkId, SDKConfiguration } from '@augurproject/artifacts';
 import { NetworkConfiguration } from '@augurproject/core';
 import { EthersProvider } from '@augurproject/ethersjs-provider';
 import {
   Connectors,
   createClient,
   Events,
-  SDKConfiguration,
   SubscriptionEventName,
 } from '@augurproject/sdk';
 import { DB } from '@augurproject/sdk/build/state/db/DB';
@@ -136,6 +135,7 @@ export class FlashSession {
 
     const config: SDKConfiguration = {
       networkId: (await this.provider.getNetworkId()) as NetworkId,
+      uploadBlockNumber: 0,
       ethereum: {
         http: network ? network.http : undefined, // NB(pg): Currently some tests don't pass in this config
         rpcRetryCount: 5,
@@ -144,7 +144,7 @@ export class FlashSession {
       },
       gnosis: {
         enabled: useGnosis,
-        http: useGnosis ? network.gnosisRelayerUrl : undefined
+        http: useGnosis ? network.gnosisRelayerUrl : undefined,
       },
       zeroX: {
         rpc: {

@@ -5,7 +5,10 @@ import { _1_ETH } from '../constants';
 import {
   Contracts as compilerOutput,
   getAddressesForNetwork,
-  NetworkId
+  NetworkId,
+  updateEnvironmentsConfig,
+  abiV1,
+  SDKConfiguration
 } from '@augurproject/artifacts';
 import {
   NetworkConfiguration,
@@ -16,7 +19,6 @@ import moment from 'moment';
 import { BigNumber } from 'bignumber.js';
 import { formatBytes32String } from 'ethers/utils';
 import { ethers } from 'ethers';
-import { abiV1, Addresses } from '@augurproject/artifacts';
 import {
   calculatePayoutNumeratorsArray,
   QUINTILLION,
@@ -26,6 +28,7 @@ import {
   numTicksToTickSizeWithDisplayPrices,
   convertOnChainPriceToDisplayPrice,
   NativePlaceTradeDisplayParams,
+  startServer
 } from '@augurproject/sdk';
 import { fork } from './fork';
 import { dispute } from './dispute';
@@ -38,10 +41,8 @@ import { ContractAPI } from '../libs/contract-api';
 import { OrderBookShaper, OrderBookConfig } from './orderbook-shaper';
 import { NumOutcomes } from '@augurproject/sdk/src/state/logs/types';
 import { flattenZeroXOrders } from '@augurproject/sdk/build/state/getter/ZeroXOrdersGetters';
-import { formatAddress, sleep, waitForSigint } from "./util";
-import { updateAddresses } from '@augurproject/artifacts/build';
+import { formatAddress, sleep, waitForSigint } from './util';
 import * as fs from 'fs';
-import { SDKConfiguration, startServer } from '@augurproject/sdk/build';
 import { EndpointSettings } from '@augurproject/sdk/build/state/getter/types';
 import { runWsServer, runWssServer } from '@augurproject/sdk/build/state/WebsocketEndpoint';
 import { createApp, runHttpServer, runHttpsServer } from '@augurproject/sdk/build/state/HTTPEndpoint';
@@ -2076,7 +2077,7 @@ export function addScripts(flash: FlashSession) {
         } else {
           const gethDocker = fake ? 'docker:geth:pop' : 'docker:geth:pop-normal-time';
           spawnSync('yarn', [gethDocker]);
-          await updateAddresses(); // add pop-geth addresses to global Addresses
+          await updateEnvironmentsConfig(); // add pop-geth addresses to global
         }
 
         await sleep(10000); // give geth some time to start
@@ -2089,7 +2090,7 @@ export function addScripts(flash: FlashSession) {
           const deployMethod = fake ? 'fake-all' : 'normal-all';
           await this.call(deployMethod, { createMarkets: true });
         } else {
-          this.contractAddresses = Addresses[networkId];
+          this.contractAddresses = getAddressesForNetwork(networkId as NetworkId);
         }
 
         await spawnSync('yarn', ['build']); // so UI etc will have the correct addresses

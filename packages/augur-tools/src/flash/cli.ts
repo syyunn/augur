@@ -1,11 +1,11 @@
 import { FlashSession } from './flash';
 import Vorpal from 'vorpal';
-import program from "commander";
+import program from 'commander';
 import { addScripts } from './scripts';
 import { addGanacheScripts } from './ganache-scripts';
 import { Account, ACCOUNTS } from '../constants';
 import { NetworkConfiguration, NETWORKS } from '@augurproject/core';
-import { Addresses } from '@augurproject/artifacts';
+import { getAddressesForNetwork, NetworkId } from '@augurproject/artifacts';
 import { computeAddress } from 'ethers/utils';
 import * as fs from 'fs';
 
@@ -70,7 +70,7 @@ async function run() {
           flash.network = NetworkConfiguration.create(opts.network as NETWORKS, false);
           flash.provider = flash.makeProvider(flash.network);
           const networkId = await flash.getNetworkId(flash.provider);
-          flash.contractAddresses = Addresses[networkId];
+          flash.contractAddresses = getAddressesForNetwork(networkId as NetworkId);
         }
         await flash.call(script.name, opts);
       } catch(e){

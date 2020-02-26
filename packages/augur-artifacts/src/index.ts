@@ -1,31 +1,63 @@
 export const abi = require('./abi.json');
 export const abiV1 = require('./abi.v1.json');
-export const Addresses: AllContractAddresses = require('./addresses.json');
 export const Contracts = require('./contracts.json');
-export const UploadBlockNumbers: UploadBlockNumbers = require('./upload-block-numbers.json');
-export const Networks = require('./networks.json');
 export * from './templates';
 export { ContractEvents } from './events';
 
-import { exists, readFile, writeFile } from 'async-file';
+import { exists, readFile, writeFile, readdir } from 'async-file';
 import path from 'path';
+import requireAll from 'require-all';
 
-try {
-  const localAddresses: { [networkId: string]: ContractAddresses } = require('./local-addresses.json');
-  Object.keys(localAddresses).forEach((networkId) => {
-    Addresses[networkId] = localAddresses[networkId];
-  });
-} catch (e) {
-  // if the local addresses don't exist, do nothing
-}
-try {
-  const localUploadBlockNumbers: UploadBlockNumbers = require('./local-upload-block-numbers.json');
-  Object.keys(localUploadBlockNumbers).forEach((networkId) => {
-    UploadBlockNumbers[networkId] = localUploadBlockNumbers[networkId];
-  });
-} catch (e) {
-  // if the local upload block numbers don't exist, do nothing
-}
+export interface SDKConfiguration {
+  networkId: NetworkId,
+  ethereum?: {
+    http?: string,
+    rpcRetryCount: number,
+    rpcRetryInterval: number,
+    rpcConcurrency: number
+  },
+  sdk?: {
+    enabled: boolean,
+    ws: string,
+  },
+  gnosis?: {
+    enabled: boolean,
+    http: string,
+    relayerAddress?: string,
+  },
+  zeroX?: {
+    rpc?: {
+      enabled: boolean,
+      ws: string
+    },
+    mesh?: {
+      verbosity?: 0|1|2|3|4|5,
+      enabled: boolean,
+      bootstrapList?: string[]
+    }
+  },
+  syncing?: {
+    enabled: boolean,
+    blockstreamDelay?: number,
+    chunkSize?: number
+  },
+  uploadBlockNumber?: number,
+  addresses?: ContractAddresses,
+  server?: {
+    httpPort: number;
+    startHTTP: boolean;
+    httpsPort: number;
+    startHTTPS: boolean;
+    wsPort: number;
+    startWS: boolean;
+    wssPort: number;
+    startWSS: boolean;
+    certificateFile?: string;
+    certificateKeyFile?: string;
+  }
+};
+
+export const environments: {[network: string]: SDKConfiguration} = requireAll(__dirname + '/environments');
 
 export enum NetworkId {
   Mainnet = '1',
@@ -62,7 +94,7 @@ export interface ContractAddresses {
   ShareToken: string;
   CreateOrder: string;
   FillOrder: string;
-  Order: string;
+  Order?: string;
   Orders: string;
   Trade: string;
   SimulateTrade: string;
@@ -116,106 +148,111 @@ export interface NetworkContractAddresses {
   104: ContractAddresses;
 }
 
-export async function setAddresses(networkId: NetworkId, addresses: ContractAddresses): Promise<void> {
-  const isDev = isDevNetworkId(networkId);
-  // write to both src and build
-  const filenames = isDev
-    ? ['../src/local-addresses.json', '../build/local-addresses.json']
-    : ['../src/addresses.json', '../build/addresses.json'];
-  await Promise.all(filenames.map(async (filename) => {
-    const filepath = path.join(__dirname, filename);
-
-    let contents: AllContractAddresses = {};
-    if (await exists(filepath)) {
-      const blob = await readFile(filepath, 'utf8');
-      try {
-        contents = JSON.parse(blob);
-      } catch {
-        contents = {}; // throw out unparseable addresses file
-      }
-    }
-    contents[networkId] = addresses;
-    await writeFile(filepath, JSON.stringify(contents, null, 2), 'utf8');
+export async function setEnvironmentConfig(env: string, config: SDKConfiguration): Promise<void> {
+  await Promise.all(['src', 'build'].map(async (dir: string) => {
+    const filepath = path.join(__dirname, '..', dir, 'environments', env);
+    await writeFile(filepath, JSON.stringify(config, null, 2), 'utf8');
   }));
 }
 
-export async function setUploadBlockNumber(networkId: NetworkId, uploadBlock: number): Promise<void> {
-  const isDev = isDevNetworkId(networkId);
-  // be sure to be in src dir, not build
-  const filenames = isDev
-    ? ['../src/local-upload-block-numbers.json', '../build/local-upload-block-numbers.json']
-    : ['../src/upload-block-numbers.json', '../build/upload-block-numbers.json'];
-  await Promise.all(filenames.map(async (filename) => {
-    const filepath = path.join(__dirname, filename);
+export async function updateConfig(env: string, config: Partial<SDKConfiguration>): Promise<SDKConfiguration> {
+  const original: Partial<SDKConfiguration> = await readConfig(env).then((c) => c || {}).catch(() => ({}));
+  const updated = {
+    ...original,
+    ...config
+  };
+  if (isValidConfig(updated)) {
+    return updated;
+  } else {
+    throw Error(`Invalid SDKConfiguration: ${updated}`)
+  }
+}
 
-    let contents: UploadBlockNumbers = {};
-    if (await exists(filepath)) {
-      const blob = await readFile(filepath, 'utf8');
-      try {
-        contents = JSON.parse(blob);
-      } catch {
-        contents = {}; // throw out unparseable block numbers file
-      }
-
-      contents[networkId] = uploadBlock;
-
-      await writeFile(filepath, JSON.stringify(contents, null, 2), 'utf8');
+export function getEnvironmentConfigForNetwork(networkId: NetworkId, breakOnMulti=false, validate=true): SDKConfiguration {
+  let targetConfig: SDKConfiguration = null;
+  Object.values(environments).forEach((config) => {
+    if (config.networkId === networkId) {
+      if (breakOnMulti && targetConfig) throw Error(`Multiple environment configs for network "${networkId}"`)
+      targetConfig = config;
     }
-  }));
+  });
+
+  if (validate) {
+    if (!targetConfig) {
+      throw new Error(`No config for network "${networkId}". Existing configs: ${JSON.stringify(environments)}`);
+    }
+    if (!targetConfig.addresses) {
+      throw new Error(`Config for network is missing addresses. Config: ${JSON.stringify(targetConfig)}`)
+    }
+    if (!targetConfig.uploadBlockNumber) {
+      throw new Error(`Config for network is missing uploadBlockNumber. Config: ${JSON.stringify(targetConfig)}`)
+    }
+  }
+
+  return targetConfig;
 }
 
 export function getAddressesForNetwork(networkId: NetworkId): ContractAddresses {
-  const addresses = Addresses[networkId];
-  if (typeof addresses === 'undefined') {
-    if (networkId !== '1') {
-      console.log(
-        `Contract addresses aren't available for network ${networkId}. If you're running in development mode, be sure to have started a local ethereum node, and then have rebuilt using yarn build before starting the dev server`
-      );
-    }
-    throw new Error(
-      `Unable to read contract addresses for network: ${
-        networkId
-      }. Known addresses: ${JSON.stringify(Addresses)}`
-    );
-  }
-
-  return addresses;
+  return getEnvironmentConfigForNetwork(networkId).addresses;
 }
 
 export function getStartingBlockForNetwork(networkId: NetworkId): number {
-  const blockNumber = UploadBlockNumbers[networkId];
-  if (typeof blockNumber === 'undefined') {
-    if (networkId !== '1') {
-      console.log(
-        `Starting block number isn't available for network ${networkId}. If you're running in development mode, be sure to have started a local ethereum node, and then have rebuilt using yarn build before starting the dev server`
-      );
-    }
-    throw new Error(
-      `Unable to read starting block number for network: ${
-        networkId
-      }. Known starting block numbers: ${JSON.stringify(UploadBlockNumbers)}`
-    );
-  }
-
-  return blockNumber;
+  return getEnvironmentConfigForNetwork(networkId).uploadBlockNumber;
 }
 
-export async function updateAddresses(): Promise<void> {
+export async function updateEnvironmentsConfig(): Promise<void> {
   // be sure to be in src dir, not build
-  await Promise.all(['../src/local-addresses.json', '../src/addresses.json'].map(async (filename) => {
-    const filepath = path.join(__dirname, filename);
+  const basepath = path.join(__dirname, '../src/environments');
+  const files = await readdir(basepath);
 
-    if (await exists(filepath)) {
-      const blob = await readFile(filepath, 'utf8');
-      try {
-        const addresses = JSON.parse(blob);
-        Object.keys(addresses).forEach((networkId) => {
-          Addresses[networkId] = addresses[networkId];
-        });
-
-      } catch {
-        throw Error(`Cannot parse addresses file ${filepath}`)
-      }
-    }
+  await Promise.all(files.map(async (filename) => {
+    const env = path.parse(filename).name;
+    environments[env] = await readConfig(env);
   }));
+}
+
+async function readConfig(env: string): Promise<SDKConfiguration> {
+  const filepath = path.join(__dirname, '../src/environments', `${env}.json`);
+  if (await exists(filepath)) {
+    let config;
+    try {
+      const blob = await readFile(filepath, 'utf8');
+      config = JSON.parse(blob);
+    } catch {
+      throw Error(`Cannot parse config file ${filepath}`)
+    }
+
+    if (isValidConfig(config)) {
+      return config;
+    } else {
+      throw Error(`Bad config file at ${filepath}`)
+    }
+  } else {
+    return null;
+  }
+}
+
+export function isValidConfig(suspect: Partial<SDKConfiguration>): suspect is SDKConfiguration {
+  return typeof suspect.networkId === 'string';
+}
+
+const DEFAULT_SDK_CONFIGURATION: SDKConfiguration = {
+  networkId: NetworkId.PrivateGanache,
+  ethereum: {
+    rpcRetryCount: 5,
+    rpcRetryInterval: 0,
+    rpcConcurrency: 40
+  },
+  uploadBlockNumber: 0,
+};
+
+export function buildConfig(specified: Partial<SDKConfiguration>): SDKConfiguration {
+  return {
+    ...deepCopy(DEFAULT_SDK_CONFIGURATION),
+    ...deepCopy(specified)
+  }
+}
+
+function deepCopy<T>(x: T): T {
+  return JSON.parse(JSON.stringify(x));
 }
