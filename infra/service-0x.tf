@@ -181,8 +181,8 @@ module "task-0x-mesh-rpc" {
       value : "0.0.0.0:${local.zerox_ports.rpc_ws}"
     },
     {
-      name: "ZEROX_CONTRACT_ADDRESS"
-      value: local.zerox-trade-addr
+      name : "ZEROX_CONTRACT_ADDRESS"
+      value : local.zerox-trade-addr
     }
   ]
 }
