@@ -1,7 +1,7 @@
 import React from 'react';
 import Styles from 'modules/app/components/inner-nav/category-filters.styles.less';
 import { MenuChevron, SearchIcon } from 'modules/common/icons';
-import { CategoryRow } from 'modules/common/form';
+import { CategoryRow, Input, InputStake } from 'modules/common/form';
 import getValue from 'utils/get-value';
 import { CATEGORIES_MAX, CATEGORY_PARAM_NAME } from 'modules/common/constants';
 import parseQuery from 'modules/routes/helpers/parse-query';
@@ -105,6 +105,7 @@ export default class CategoryFilters extends React.Component<
 
     return (
       <div className={Styles.CategoryFilters}>
+        <Input isStake={true} />
         {!hasSelectedCategories && this.renderPopularCategories()}
         {!hasSelectedCategories && this.props.categoryMetaData && this.renderAllCategories()}
 

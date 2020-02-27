@@ -1748,6 +1748,7 @@ interface InputProps {
   shouldMatchValue?: boolean;
   comparisonValue?: string;
   isSearch?: boolean;
+  isStake?: boolean;
   placeholder?: string;
   maxButton?: boolean;
   onMaxButtonClick?: Function;
@@ -1777,6 +1778,7 @@ export class Input extends Component<InputProps, InputState> {
     canToggleVisibility: false,
     shouldMatchValue: false,
     isSearch: false,
+    isStake: false,
     maxButton: false,
     noFocus: false,
     isLoading: false,
@@ -1890,6 +1892,7 @@ export class Input extends Component<InputProps, InputState> {
       shouldMatchValue,
       comparisonValue,
       isSearch,
+      isStake,
       min,
       max,
       maxButton,
@@ -1906,6 +1909,8 @@ export class Input extends Component<InputProps, InputState> {
       ...p
     } = this.props; // eslint-disable-line no-unused-vars
     const { focused, isHiddenContentVisible, value } = this.state;
+
+    console.log('isStake', isStake)
 
     return (
       <div
@@ -1928,19 +1933,37 @@ export class Input extends Component<InputProps, InputState> {
         style={style}
       >
         {isSearch && SearchIcon}
-        {!isMultiline && (
-          <input
-            {...p}
-            className={classNames('box', className, {
-              'search-input': isSearch,
-            })}
-            type={type === 'password' && isHiddenContentVisible ? 'text' : type}
-            value={value}
-            onChange={this.handleOnChange}
-            onBlur={this.handleOnBlur}
-            placeholder={placeholder}
-            onFocus={this.handleOnFocus}
-          />
+        {!isMultiline && !isStake && (
+            <input
+              {...p}
+              className={classNames('box', className, {
+                'search-input': isSearch,
+              })}
+              type={type === 'password' && isHiddenContentVisible ? 'text' : type}
+              value={value}
+              onChange={this.handleOnChange}
+              onBlur={this.handleOnBlur}
+              placeholder={placeholder}
+              onFocus={this.handleOnFocus}
+            />
+          )}
+
+        {!isMultiline && isStake && (
+          <fieldset>
+            <legend>STAKE</legend>
+            <input
+              {...p}
+              className={classNames('box', className, {
+                'search-input': isSearch,
+              })}
+              type={type === 'password' && isHiddenContentVisible ? 'text' : type}
+              value={value}
+              onChange={this.handleOnChange}
+              onBlur={this.handleOnBlur}
+              placeholder={placeholder}
+              onFocus={this.handleOnFocus}
+            />
+          </fieldset>
         )}
 
         {isMultiline && (
@@ -2232,18 +2255,9 @@ export class InputStake extends Component<
   InputStakeState
 > {
   render() {
-    const { className, label, options } = this.props;
-    const { showList, selected, label: currentLabel, value } = this.state;
-
     return (
       <div
-        ref={InputDropdown => {
-          this.refInputDropdown = InputDropdown;
-        }}
-        className={classNames(Styles.InputDropdown, className)}
-        onClick={this.toggleList}
-        onKeyPress={value => this.onKeyPress(value)}
-      ></div>
+      >hello world</div>
     );
   }
 }
